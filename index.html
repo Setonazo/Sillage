@@ -1,0 +1,2003 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sillage — Diario de Perfumes</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #faf8f5; }
+#root { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+
+// ── FONTS ──────────────────────────────────────────────────────────────────
+const FONT_LINK = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Josefin+Sans:wght@100;300;400&display=swap";
+
+// ── PALETTE ────────────────────────────────────────────────────────────────
+const C = {
+  bg:"#faf8f5", card:"#fff", hover:"#f0f3f8", ink:"#1c1714", inkMid:"#3a3f4a",
+  inkSoft:"#6b7280", border:"#dde2ea", borderS:"#b8c1cf",
+  accent:"#1e3a5f", accentM:"#2c5282", accentL:"#dbeafe",
+  red:"#c0503a", surface:"#eef1f6",
+  season:{"Calor":"#f59e0b","Todo el año":"#3b6cb7","Frío":"#1e3a5f"},
+  occ:{"Toda ocasión":"#1e3a5f","Formal":"#3b6cb7","Casual":"#7aa4d8"},
+  fam:{Acuática:"#3b82f6",Amaderada:"#1e3a5f",Aromática:"#0ea5e9",Cítrica:"#f59e0b",Oriental:"#7c3aed",Floral:"#ec4899",Cuero:"#92400e",Otra:"#9ca3af"}
+};
+
+// ── STATIC DATA ────────────────────────────────────────────────────────────
+const COLLECTION_DEFAULT = [
+  {brand:"Acqua di Parma",name:"Arancia di Capri"},{brand:"Acqua di Parma",name:"Bergamotto di Calabria"},
+  {brand:"Acqua di Parma",name:"Colonia Pura"},{brand:"Acqua di Parma",name:"Fico di Amalfi"},
+  {brand:"Acqua di Parma",name:"Vaniglia Eau de Parfum"},{brand:"Adolfo Domínguez",name:"Citrus Cedro"},
+  {brand:"Afnan",name:"Turathi Blue"},{brand:"Al Haramain",name:"Detour Noir"},
+  {brand:"Amouage",name:"Decision"},{brand:"Amouage",name:"Interlude Black Iris"},
+  {brand:"Amouage",name:"Lustre"},{brand:"Amouage",name:"Purpose 50"},
+  {brand:"Amouage",name:"Reflection 45"},{brand:"Amouage",name:"Reflection Man"},
+  {brand:"Armaf",name:"Club de Nuit Precieux I"},{brand:"Bvlgari",name:"Tygar"},
+  {brand:"Chanel",name:"Bleu de Chanel Eau de Parfum"},{brand:"Chanel",name:"Bleu de Chanel L'Exclusif"},
+  {brand:"Clinique",name:"Happy for Men"},{brand:"Creed",name:"Absolu Aventus"},
+  {brand:"Creed",name:"Aventus Cologne"},{brand:"Dior",name:"Homme Intense"},
+  {brand:"Dior",name:"Homme Original"},{brand:"Dior",name:"Homme Parfum"},
+  {brand:"Dior",name:"Sauvage Elixir"},{brand:"El Ganso",name:"Bravo Monsieur"},
+  {brand:"El Ganso",name:"Part Time Hero"},{brand:"Fragrance World",name:"Oud Wonder"},
+  {brand:"Giorgio Armani",name:"Acqua di Giò Parfum"},{brand:"Giorgio Armani",name:"Acqua di Giò Profondo EDP"},
+  {brand:"Giorgio Armani",name:"Acqua di Giò Profumo"},{brand:"Jean Paul Gaultier",name:"Le Male"},
+  {brand:"Loewe",name:"001 Eau de Cologne"},{brand:"Loewe",name:"7 Anónimo"},
+  {brand:"Loewe",name:"7 Cobalt"},{brand:"Loewe",name:"Agua Él"},
+  {brand:"Loewe",name:"Esencia Eau de Parfum"},{brand:"Loewe",name:"Esencia Elixir"},
+  {brand:"Loewe",name:"Paula's Ibiza"},{brand:"Loewe",name:"Solo"},
+  {brand:"Loewe",name:"Solo Platinum"},{brand:"Louis Vuitton",name:"Imagination"},
+  {brand:"Louis Vuitton",name:"L'Immensité"},{brand:"Louis Vuitton",name:"Pacific Chill"},
+  {brand:"Maison Crivelli",name:"Iris Malikhan"},{brand:"Pacha Ibiza",name:"Pure Men"},
+  {brand:"Prada",name:"Infusion de Cèdre"},{brand:"Prada",name:"L'Homme Intense"},
+  {brand:"Prada",name:"L'Homme L'Eau"},{brand:"Prada",name:"Luna Rossa Black"},
+  {brand:"Rituals",name:"Roi d'Orient"},{brand:"Tom Ford",name:"Ombre Leather"},
+  {brand:"Valentino",name:"Uomo Intense (2021)"},{brand:"Voux Emir",name:"Zingy"},
+  {brand:"Xerjoff",name:"Torino 21"},{brand:"Yves Saint Laurent",name:"6 Place Saint Sulpice"},
+  {brand:"Zara",name:"Sunrise on the Red Sand Dunes"},{brand:"Zara",name:"Synth Aura"},
+];
+
+const HISTORY_RAW = [
+  ["2025-10-07","Giorgio Armani – Acqua di Giò Parfum","día"],["2025-10-08","Chanel – Bleu de Chanel Eau de Parfum","día"],
+  ["2025-10-09","Giorgio Armani – Acqua di Giò Profumo","día"],["2025-10-10","Dior – Homme Original","día"],
+  ["2025-10-11","Louis Vuitton – Imagination","día"],["2025-10-12","Acqua di Parma – Colonia Pura","día"],
+  ["2025-10-13","Giorgio Armani – Acqua di Giò Profumo","día"],["2025-10-15","Prada – Luna Rossa Black","día"],
+  ["2025-10-16","Prada – L'Homme Intense","día"],["2025-10-17","Dior – Homme Original","día"],
+  ["2025-10-18","Chanel – Bleu de Chanel Eau de Parfum","día"],["2025-10-19","Zara – Synth Aura","día"],
+  ["2025-10-20","Louis Vuitton – Imagination","día"],["2025-10-21","Fragrance World – Oud Wonder","día"],
+  ["2025-10-22","El Ganso – Bravo Monsieur","día"],["2025-10-23","Prada – Luna Rossa Black","día"],
+  ["2025-10-24","Giorgio Armani – Acqua di Giò Parfum","día"],["2025-10-25","Creed – Aventus Cologne","día"],
+  ["2025-10-26","Giorgio Armani – Acqua di Giò Parfum","día"],["2025-10-27","Armaf – Club de Nuit Precieux I","día"],
+  ["2025-10-28","Maison Crivelli – Iris Malikhan","día"],["2025-10-29","Loewe – Esencia Elixir","día"],
+  ["2025-10-30","Prada – Luna Rossa Black","día"],["2025-10-31","Chanel – Bleu de Chanel L'Exclusif","día"],
+  ["2025-11-01","Zara – Synth Aura","día"],["2025-11-02","Loewe – Agua Él","día"],
+  ["2025-11-03","Loewe – Esencia Elixir","día"],["2025-11-04","Chanel – Bleu de Chanel L'Exclusif","día"],
+  ["2025-11-05","Giorgio Armani – Acqua di Giò Profumo","día"],["2025-11-06","Prada – L'Homme Intense","día"],
+  ["2025-11-07","Giorgio Armani – Acqua di Giò Profondo EDP","día"],["2025-11-08","Prada – Luna Rossa Black","día"],
+  ["2025-11-09","Dior – Homme Original","día"],["2025-11-10","Zara – Synth Aura","día"],
+  ["2025-11-11","Armaf – Club de Nuit Precieux I","día"],["2025-11-12","Amouage – Reflection Man","día"],
+  ["2025-11-13","Acqua di Parma – Vaniglia Eau de Parfum","día"],["2025-11-14","Prada – L'Homme L'Eau","día"],
+  ["2025-11-15","Dior – Homme Intense","día"],["2025-11-16","Valentino – Uomo Intense (2021)","día"],
+  ["2025-11-17","Chanel – Bleu de Chanel L'Exclusif","día"],["2025-11-18","Giorgio Armani – Acqua di Giò Parfum","día"],
+  ["2025-11-19","Loewe – Esencia Elixir","día"],["2025-11-20","Loewe – 7 Anónimo","día"],
+  ["2025-11-21","Prada – Luna Rossa Black","día"],["2025-11-22","Prada – Infusion de Cèdre","día"],
+  ["2025-11-23","Loewe – 001 Eau de Cologne","día"],["2025-11-24","Maison Crivelli – Iris Malikhan","día"],
+  ["2025-11-25","Loewe – 7 Anónimo","día"],["2025-11-26","Chanel – Bleu de Chanel L'Exclusif","día"],
+  ["2025-11-27","Loewe – 7 Cobalt","día"],["2025-11-28","Louis Vuitton – Imagination","día"],
+  ["2025-11-29","Amouage – Interlude Black Iris","día"],["2025-11-29","Adolfo Domínguez – Citrus Cedro","noche"],
+  ["2025-11-30","Amouage – Interlude Black Iris","día"],["2025-12-01","Amouage – Interlude Black Iris","día"],
+  ["2025-12-02","Dior – Sauvage Elixir","día"],["2025-12-03","Giorgio Armani – Acqua di Giò Parfum","día"],
+  ["2025-12-04","Loewe – Esencia Elixir","día"],["2025-12-05","Dior – Homme Original","día"],
+  ["2025-12-06","Prada – Luna Rossa Black","día"],["2025-12-07","Giorgio Armani – Acqua di Giò Parfum","día"],
+  ["2025-12-08","Valentino – Uomo Intense (2021)","día"],["2025-12-09","Amouage – Interlude Black Iris","día"],
+  ["2025-12-10","Loewe – 7 Anónimo","día"],["2025-12-11","Amouage – Interlude Black Iris","día"],
+  ["2025-12-11","Chanel – Bleu de Chanel L'Exclusif","noche"],["2025-12-12","Acqua di Parma – Vaniglia Eau de Parfum","día"],
+  ["2025-12-13","Dior – Homme Intense","día"],["2025-12-14","Zara – Synth Aura","día"],
+  ["2025-12-15","Louis Vuitton – Imagination","día"],["2025-12-16","Prada – L'Homme Intense","día"],
+  ["2025-12-17","Amouage – Interlude Black Iris","día"],["2025-12-18","Creed – Absolu Aventus","día"],
+  ["2025-12-19","Acqua di Parma – Vaniglia Eau de Parfum","día"],["2025-12-20","Prada – Luna Rossa Black","día"],
+  ["2025-12-22","Loewe – 7 Anónimo","día"],["2025-12-23","Armaf – Club de Nuit Precieux I","día"],
+  ["2025-12-24","Dior – Homme Intense","día"],["2025-12-25","Amouage – Interlude Black Iris","día"],
+  ["2025-12-26","Amouage – Interlude Black Iris","día"],["2025-12-27","Acqua di Parma – Vaniglia Eau de Parfum","día"],
+  ["2025-12-28","Giorgio Armani – Acqua di Giò Parfum","día"],["2025-12-29","Acqua di Parma – Bergamotto di Calabria","día"],
+  ["2025-12-30","Zara – Synth Aura","día"],["2025-12-31","Dior – Homme Parfum","día"],
+  ["2026-01-01","Amouage – Lustre","día"],["2026-01-02","Louis Vuitton – Imagination","día"],
+  ["2026-01-02","Maison Crivelli – Iris Malikhan","noche"],["2026-01-03","Dior – Homme Original","día"],
+  ["2026-01-04","Creed – Aventus Cologne","día"],["2026-01-05","Amouage – Reflection Man","día"],
+  ["2026-01-06","Chanel – Bleu de Chanel Eau de Parfum","día"],["2026-01-07","Acqua di Parma – Vaniglia Eau de Parfum","día"],
+  ["2026-01-08","Loewe – 7 Anónimo","día"],["2026-01-09","Amouage – Reflection Man","día"],
+  ["2026-01-10","Prada – Luna Rossa Black","día"],["2026-01-11","Loewe – 001 Eau de Cologne","día"],
+  ["2026-01-12","Amouage – Lustre","día"],["2026-01-13","Amouage – Purpose 50","día"],
+  ["2026-01-14","Amouage – Interlude Black Iris","día"],["2026-01-15","Giorgio Armani – Acqua di Giò Profumo","día"],
+  ["2026-01-16","Maison Crivelli – Iris Malikhan","día"],["2026-01-17","Dior – Homme Original","día"],
+  ["2026-01-18","Clinique – Happy for Men","día"],["2026-01-19","Amouage – Purpose 50","día"],
+  ["2026-01-20","Amouage – Lustre","día"],["2026-01-21","Zara – Synth Aura","día"],
+  ["2026-01-22","Amouage – Purpose 50","día"],["2026-01-23","Amouage – Lustre","día"],
+  ["2026-01-24","Bvlgari – Tygar","día"],["2026-01-25","Zara – Synth Aura","día"],
+  ["2026-01-26","Amouage – Interlude Black Iris","día"],["2026-01-27","Amouage – Purpose 50","día"],
+  ["2026-01-28","Prada – L'Homme L'Eau","día"],["2026-01-29","Loewe – Esencia Elixir","día"],
+  ["2026-01-30","Zara – Sunrise on the Red Sand Dunes","día"],["2026-01-31","Dior – Homme Intense","día"],
+  ["2026-02-01","Voux Emir – Zingy","día"],["2026-02-02","Zara – Synth Aura","día"],
+  ["2026-02-03","Amouage – Lustre","día"],["2026-02-04","Dior – Homme Original","día"],
+  ["2026-02-05","Chanel – Bleu de Chanel Eau de Parfum","día"],["2026-02-06","Acqua di Parma – Vaniglia Eau de Parfum","día"],
+  ["2026-02-07","Louis Vuitton – L'Immensité","día"],["2026-02-08","Giorgio Armani – Acqua di Giò Profondo EDP","día"],
+  ["2026-02-09","Amouage – Purpose 50","día"],["2026-02-10","Louis Vuitton – Imagination","día"],
+  ["2026-02-11","Amouage – Interlude Black Iris","día"],["2026-02-12","Chanel – Bleu de Chanel Eau de Parfum","día"],
+  ["2026-02-13","Yves Saint Laurent – 6 Place Saint Sulpice","día"],["2026-02-14","Dior – Homme Intense","día"],
+  ["2026-02-15","Yves Saint Laurent – 6 Place Saint Sulpice","día"],["2026-02-16","Armaf – Club de Nuit Precieux I","día"],
+  ["2026-02-17","Maison Crivelli – Iris Malikhan","día"],["2026-02-18","Amouage – Lustre","día"],
+  ["2026-02-19","Amouage – Purpose 50","día"],["2026-02-20","Valentino – Uomo Intense (2021)","día"],
+  ["2026-02-21","Creed – Aventus Cologne","día"],["2026-02-22","Louis Vuitton – Imagination","día"],
+  ["2026-02-23","Bvlgari – Tygar","día"],["2026-02-24","Prada – Infusion de Cèdre","día"],
+  ["2026-02-25","Amouage – Reflection Man","día"],["2026-02-26","Giorgio Armani – Acqua di Giò Parfum","día"],
+  ["2026-02-27","Prada – L'Homme L'Eau","día"],["2026-02-28","Creed – Absolu Aventus","día"],
+  ["2026-03-01","Louis Vuitton – L'Immensité","día"],["2026-03-02","Chanel – Bleu de Chanel L'Exclusif","día"],
+  ["2026-03-03","Clinique – Happy for Men","día"],["2026-03-04","Loewe – 7 Anónimo","día"],
+  ["2026-03-05","Zara – Synth Aura","día"],["2026-03-06","Yves Saint Laurent – 6 Place Saint Sulpice","día"],
+  ["2026-03-07","Dior – Homme Original","día"],["2026-03-08","Louis Vuitton – Imagination","día"],
+  ["2026-03-09","Amouage – Interlude Black Iris","día"],["2026-03-10","Loewe – 001 Eau de Cologne","día"],
+  ["2026-03-11","Jean Paul Gaultier – Le Male","día"],["2026-03-12","Amouage – Purpose 50","día"],
+  ["2026-03-13","Jean Paul Gaultier – Le Male","día"],["2026-03-14","Creed – Absolu Aventus","día"],
+  ["2026-03-15","Prada – L'Homme L'Eau","día"],["2026-03-16","Zara – Synth Aura","día"],
+  ["2026-03-17","Acqua di Parma – Bergamotto di Calabria","día"],["2026-03-18","Giorgio Armani – Acqua di Giò Parfum","día"],
+  ["2026-03-19","Amouage – Reflection Man","día"],["2026-03-20","Yves Saint Laurent – 6 Place Saint Sulpice","día"],
+  ["2026-03-21","Jean Paul Gaultier – Le Male","día"],["2026-03-22","Loewe – Agua Él","día"],
+  ["2026-03-23","Loewe – Esencia Elixir","día"],["2026-03-24","Chanel – Bleu de Chanel Eau de Parfum","día"],
+  ["2026-03-25","Prada – Infusion de Cèdre","día"],["2026-03-26","Bvlgari – Tygar","día"],
+  ["2026-03-27","Xerjoff – Torino 21","día"],["2026-03-28","Louis Vuitton – Imagination","día"],
+  ["2026-03-29","Dior – Homme Original","día"],["2026-03-30","Amouage – Purpose 50","día"],
+  ["2026-03-31","Adolfo Domínguez – Citrus Cedro","día"],["2026-04-01","Prada – L'Homme L'Eau","día"],
+  ["2026-04-02","Louis Vuitton – Imagination","día"],["2026-04-02","Acqua di Parma – Vaniglia Eau de Parfum","noche"],
+  ["2026-04-03","Amouage – Decision","día"],["2026-04-03","Xerjoff – Torino 21","tarde"],
+  ["2026-04-03","Parfums de Marly – Layton (decant)","noche"],["2026-04-04","Creed – Aventus Cologne","día"],
+  ["2026-04-05","Giorgio Armani – Acqua di Giò Profondo EDP","día"],["2026-04-06","Amouage – Decision","día"],
+  ["2026-04-07","Chanel – Bleu de Chanel Eau de Parfum","día"],["2026-04-08","Amouage – Reflection 45","día"],
+];
+
+const FAMILY_MAP = {
+  "Acqua di Parma – Arancia di Capri":"Cítrica","Acqua di Parma – Bergamotto di Calabria":"Cítrica",
+  "Acqua di Parma – Colonia Pura":"Cítrica","Acqua di Parma – Fico di Amalfi":"Cítrica",
+  "Acqua di Parma – Vaniglia Eau de Parfum":"Oriental","Adolfo Domínguez – Citrus Cedro":"Cítrica",
+  "Afnan – Turathi Blue":"Aromática","Al Haramain – Detour Noir":"Oriental",
+  "Amouage – Decision":"Amaderada","Amouage – Interlude Black Iris":"Oriental",
+  "Amouage – Lustre":"Floral","Amouage – Purpose 50":"Amaderada",
+  "Amouage – Reflection 45":"Aromática","Amouage – Reflection Man":"Aromática",
+  "Armaf – Club de Nuit Precieux I":"Amaderada","Bvlgari – Tygar":"Amaderada",
+  "Chanel – Bleu de Chanel Eau de Parfum":"Amaderada","Chanel – Bleu de Chanel L'Exclusif":"Amaderada",
+  "Clinique – Happy for Men":"Cítrica","Creed – Absolu Aventus":"Amaderada",
+  "Creed – Aventus Cologne":"Cítrica","Dior – Homme Intense":"Oriental",
+  "Dior – Homme Original":"Aromática","Dior – Homme Parfum":"Cuero",
+  "Dior – Sauvage Elixir":"Amaderada","El Ganso – Bravo Monsieur":"Aromática",
+  "El Ganso – Part Time Hero":"Aromática","Fragrance World – Oud Wonder":"Oriental",
+  "Giorgio Armani – Acqua di Giò Parfum":"Acuática","Giorgio Armani – Acqua di Giò Profondo EDP":"Acuática",
+  "Giorgio Armani – Acqua di Giò Profumo":"Acuática","Jean Paul Gaultier – Le Male":"Oriental",
+  "Loewe – 001 Eau de Cologne":"Cítrica","Loewe – 7 Anónimo":"Amaderada",
+  "Loewe – 7 Cobalt":"Acuática","Loewe – Agua Él":"Acuática",
+  "Loewe – Esencia Eau de Parfum":"Aromática","Loewe – Esencia Elixir":"Amaderada",
+  "Loewe – Paula's Ibiza":"Aromática","Loewe – Solo":"Amaderada",
+  "Loewe – Solo Platinum":"Amaderada","Louis Vuitton – Imagination":"Acuática",
+  "Louis Vuitton – L'Immensité":"Acuática","Louis Vuitton – Pacific Chill":"Acuática",
+  "Maison Crivelli – Iris Malikhan":"Floral","Pacha Ibiza – Pure Men":"Aromática",
+  "Prada – Infusion de Cèdre":"Amaderada","Prada – L'Homme Intense":"Oriental",
+  "Prada – L'Homme L'Eau":"Aromática","Prada – Luna Rossa Black":"Amaderada",
+  "Rituals – Roi d'Orient":"Oriental","Tom Ford – Ombre Leather":"Cuero",
+  "Valentino – Uomo Intense (2021)":"Oriental","Voux Emir – Zingy":"Cítrica",
+  "Xerjoff – Torino 21":"Amaderada","Yves Saint Laurent – 6 Place Saint Sulpice":"Aromática",
+  "Zara – Sunrise on the Red Sand Dunes":"Oriental","Zara – Synth Aura":"Amaderada",
+};
+
+const SEASON_MAP = {
+  "Acqua di Parma – Arancia di Capri":"Calor","Acqua di Parma – Bergamotto di Calabria":"Todo el año",
+  "Acqua di Parma – Colonia Pura":"Todo el año","Acqua di Parma – Fico di Amalfi":"Calor",
+  "Acqua di Parma – Vaniglia Eau de Parfum":"Frío","Adolfo Domínguez – Citrus Cedro":"Calor",
+  "Afnan – Turathi Blue":"Todo el año","Al Haramain – Detour Noir":"Frío",
+  "Amouage – Decision":"Frío","Amouage – Interlude Black Iris":"Frío",
+  "Amouage – Lustre":"Todo el año","Amouage – Purpose 50":"Todo el año",
+  "Amouage – Reflection 45":"Todo el año","Amouage – Reflection Man":"Todo el año",
+  "Armaf – Club de Nuit Precieux I":"Frío","Bvlgari – Tygar":"Todo el año",
+  "Chanel – Bleu de Chanel Eau de Parfum":"Todo el año","Chanel – Bleu de Chanel L'Exclusif":"Frío",
+  "Clinique – Happy for Men":"Calor","Creed – Absolu Aventus":"Todo el año",
+  "Creed – Aventus Cologne":"Todo el año","Dior – Homme Intense":"Frío",
+  "Dior – Homme Original":"Todo el año","Dior – Homme Parfum":"Frío",
+  "Dior – Sauvage Elixir":"Frío","El Ganso – Bravo Monsieur":"Todo el año",
+  "El Ganso – Part Time Hero":"Calor","Fragrance World – Oud Wonder":"Frío",
+  "Giorgio Armani – Acqua di Giò Parfum":"Calor","Giorgio Armani – Acqua di Giò Profondo EDP":"Todo el año",
+  "Giorgio Armani – Acqua di Giò Profumo":"Todo el año","Jean Paul Gaultier – Le Male":"Todo el año",
+  "Loewe – 001 Eau de Cologne":"Calor","Loewe – 7 Anónimo":"Todo el año",
+  "Loewe – 7 Cobalt":"Calor","Loewe – Agua Él":"Calor",
+  "Loewe – Esencia Eau de Parfum":"Todo el año","Loewe – Esencia Elixir":"Frío",
+  "Loewe – Paula's Ibiza":"Calor","Loewe – Solo":"Todo el año",
+  "Loewe – Solo Platinum":"Frío","Louis Vuitton – Imagination":"Todo el año",
+  "Louis Vuitton – L'Immensité":"Calor","Louis Vuitton – Pacific Chill":"Calor",
+  "Maison Crivelli – Iris Malikhan":"Todo el año","Pacha Ibiza – Pure Men":"Calor",
+  "Prada – Infusion de Cèdre":"Todo el año","Prada – L'Homme Intense":"Frío",
+  "Prada – L'Homme L'Eau":"Calor","Prada – Luna Rossa Black":"Todo el año",
+  "Rituals – Roi d'Orient":"Frío","Tom Ford – Ombre Leather":"Frío",
+  "Valentino – Uomo Intense (2021)":"Frío","Voux Emir – Zingy":"Calor",
+  "Xerjoff – Torino 21":"Frío","Yves Saint Laurent – 6 Place Saint Sulpice":"Todo el año",
+  "Zara – Sunrise on the Red Sand Dunes":"Todo el año","Zara – Synth Aura":"Todo el año",
+};
+
+const OCCASION_MAP = {
+  "Acqua di Parma – Arancia di Capri":"Casual","Acqua di Parma – Bergamotto di Calabria":"Toda ocasión",
+  "Acqua di Parma – Colonia Pura":"Toda ocasión","Acqua di Parma – Fico di Amalfi":"Casual",
+  "Acqua di Parma – Vaniglia Eau de Parfum":"Casual","Adolfo Domínguez – Citrus Cedro":"Casual",
+  "Afnan – Turathi Blue":"Toda ocasión","Al Haramain – Detour Noir":"Formal",
+  "Amouage – Decision":"Formal","Amouage – Interlude Black Iris":"Formal",
+  "Amouage – Lustre":"Formal","Amouage – Purpose 50":"Toda ocasión",
+  "Amouage – Reflection 45":"Toda ocasión","Amouage – Reflection Man":"Toda ocasión",
+  "Armaf – Club de Nuit Precieux I":"Formal","Bvlgari – Tygar":"Toda ocasión",
+  "Chanel – Bleu de Chanel Eau de Parfum":"Toda ocasión","Chanel – Bleu de Chanel L'Exclusif":"Formal",
+  "Clinique – Happy for Men":"Casual","Creed – Absolu Aventus":"Toda ocasión",
+  "Creed – Aventus Cologne":"Toda ocasión","Dior – Homme Intense":"Formal",
+  "Dior – Homme Original":"Toda ocasión","Dior – Homme Parfum":"Formal",
+  "Dior – Sauvage Elixir":"Formal","El Ganso – Bravo Monsieur":"Casual",
+  "El Ganso – Part Time Hero":"Casual","Fragrance World – Oud Wonder":"Formal",
+  "Giorgio Armani – Acqua di Giò Parfum":"Toda ocasión","Giorgio Armani – Acqua di Giò Profondo EDP":"Toda ocasión",
+  "Giorgio Armani – Acqua di Giò Profumo":"Toda ocasión","Jean Paul Gaultier – Le Male":"Casual",
+  "Loewe – 001 Eau de Cologne":"Casual","Loewe – 7 Anónimo":"Toda ocasión",
+  "Loewe – 7 Cobalt":"Casual","Loewe – Agua Él":"Casual",
+  "Loewe – Esencia Eau de Parfum":"Formal","Loewe – Esencia Elixir":"Formal",
+  "Loewe – Paula's Ibiza":"Casual","Loewe – Solo":"Toda ocasión",
+  "Loewe – Solo Platinum":"Toda ocasión","Louis Vuitton – Imagination":"Toda ocasión",
+  "Louis Vuitton – L'Immensité":"Casual","Louis Vuitton – Pacific Chill":"Casual",
+  "Maison Crivelli – Iris Malikhan":"Formal","Pacha Ibiza – Pure Men":"Casual",
+  "Prada – Infusion de Cèdre":"Toda ocasión","Prada – L'Homme Intense":"Formal",
+  "Prada – L'Homme L'Eau":"Casual","Prada – Luna Rossa Black":"Toda ocasión",
+  "Rituals – Roi d'Orient":"Formal","Tom Ford – Ombre Leather":"Formal",
+  "Valentino – Uomo Intense (2021)":"Formal","Voux Emir – Zingy":"Casual",
+  "Xerjoff – Torino 21":"Formal","Yves Saint Laurent – 6 Place Saint Sulpice":"Toda ocasión",
+  "Zara – Sunrise on the Red Sand Dunes":"Casual","Zara – Synth Aura":"Casual",
+};
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+const todayStr = () => new Date().toISOString().split("T")[0];
+const fmtDate = (s) => { const [y,m,d]=s.split("-"); return `${d}/${m}/${y}`; };
+const fragKey = (p) => `${p.brand} – ${p.name}`;
+const MONTHS_ES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const DAYS_ES = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+
+// ── STORAGE KEYS (no spaces allowed) ──────────────────────────────────────
+const SK = { log:"sillage-log", coll:"sillage-coll", fichas:"sillage-fichas", cats:"sillage-cats", seeded:"sillage-seeded" };
+
+// ── STORAGE (localStorage) ───────────────────────────────────────────────
+const store = {
+  async get(key) {
+    try {
+      const v = localStorage.getItem(key);
+      return v ? JSON.parse(v) : null;
+    } catch { return null; }
+  },
+  async set(key, val) {
+    try {
+      localStorage.setItem(key, JSON.stringify(val));
+    } catch(e) { console.error("localStorage failed:", e); }
+  },
+};
+
+// ── STYLES (injected once) ─────────────────────────────────────────────────
+const CSS = `
+@import url('${FONT_LINK}');
+*{margin:0;padding:0;box-sizing:border-box}
+.sil{background:#faf8f5;color:#1c1714;font-family:'Josefin Sans',sans-serif;font-weight:400;min-height:100vh;font-size:14px}
+.sil-wrap{max-width:1100px;margin:0 auto;padding:0 1.2rem}
+/* header */
+.sil-header{padding:2rem 0 1.2rem;text-align:center;border-bottom:1px solid #dde2ea}
+.sil-brand{font-family:'Cormorant Garamond',serif;font-size:2.6rem;font-weight:300;letter-spacing:.3em;text-transform:uppercase;color:#1c1714}
+.sil-tagline{font-size:.6rem;letter-spacing:.25em;color:#6b7280;text-transform:uppercase;margin-top:.2rem}
+/* tabs */
+.sil-tabs{display:flex;border-bottom:1px solid #dde2ea;overflow-x:auto;gap:0}
+.sil-tab{padding:.65rem 1.2rem;font-family:'Josefin Sans',sans-serif;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:#6b7280;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:color .2s}
+.sil-tab:hover{color:#3a3f4a}
+.sil-tab.active{color:#1e3a5f;border-bottom-color:#1e3a5f}
+/* panel */
+.sil-panel{padding:1.8rem 0 3rem}
+/* cards */
+.card{background:#fff;border:1px solid #dde2ea;border-radius:3px;padding:1.2rem 1.4rem;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+/* today card */
+.today-card{background:#fff;border:1px solid #dde2ea;border-radius:3px;padding:1.4rem 1.8rem;margin-bottom:1.8rem;position:relative;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.today-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:#1e3a5f}
+.today-date{font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;color:#1e3a5f;margin-bottom:.4rem;font-weight:400}
+.today-frags{font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-style:italic;color:#1c1714;min-height:2rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.today-empty{color:#6b7280;font-size:1.1rem}
+/* section label */
+.sec-label{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:#3a3f4a;font-weight:400;margin-bottom:.7rem;margin-top:1.4rem}
+/* session btns */
+.session-row{display:flex;gap:.4rem;margin-bottom:1.2rem;flex-wrap:wrap}
+.sess-btn{padding:.4rem 1rem;font-family:'Josefin Sans',sans-serif;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;background:transparent;border:1px solid #b8c1cf;color:#6b7280;cursor:pointer;border-radius:2px;transition:all .18s}
+.sess-btn.active,.sess-btn:hover{background:#dbeafe;border-color:#1e3a5f;color:#1e3a5f}
+/* date row */
+.date-sess-row{display:flex;gap:2rem;align-items:flex-start;margin-bottom:1.4rem;flex-wrap:wrap}
+.pick-label{display:block;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:#6b7280;margin-bottom:.4rem;font-weight:400}
+input[type=date].date-input{background:#fff;border:1px solid #b8c1cf;color:#1c1714;padding:.42rem .7rem;font-family:'Josefin Sans',sans-serif;font-size:.8rem;font-weight:400;outline:none;border-radius:2px;cursor:pointer}
+input[type=date].date-input:focus{border-color:#1e3a5f}
+/* search */
+.search-wrap{position:relative;margin-bottom:1rem}
+.search-wrap input{width:100%;background:#fff;border:1px solid #b8c1cf;color:#1c1714;padding:.75rem 1rem .75rem 2.2rem;font-family:'Josefin Sans',sans-serif;font-size:.82rem;font-weight:400;outline:none;border-radius:2px;transition:border-color .2s}
+.search-wrap input:focus{border-color:#1e3a5f}
+.search-wrap input::placeholder{color:#6b7280}
+.search-icon{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:#6b7280;pointer-events:none}
+/* perfume grid */
+.perf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.5rem;max-height:340px;overflow-y:auto;padding-right:.2rem}
+.perf-grid::-webkit-scrollbar{width:3px}
+.perf-grid::-webkit-scrollbar-thumb{background:#b8c1cf;border-radius:2px}
+.perf-item{padding:.65rem .9rem;background:#fff;border:1px solid #dde2ea;cursor:pointer;border-radius:2px;transition:all .18s}
+.perf-item:hover{background:#dbeafe;border-color:#1e3a5f}
+.perf-brand{font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;color:#1e3a5f;margin-bottom:.15rem;font-weight:400}
+.perf-name{font-family:'Cormorant Garamond',serif;font-size:.95rem;color:#1c1714;line-height:1.3}
+/* badge */
+.badge{font-size:.52rem;letter-spacing:.12em;text-transform:uppercase;padding:.18rem .5rem;border-radius:2px;background:#dbeafe;color:#1e3a5f;font-weight:400;display:inline-block}
+/* log */
+.log-entry{display:grid;grid-template-columns:85px 1fr auto auto;align-items:center;gap:.8rem;padding:.6rem .9rem;background:#fff;border:1px solid #dde2ea;border-radius:2px;margin-bottom:.35rem;transition:background .15s}
+.log-entry:hover{background:#f0f3f8}
+.log-date{font-size:.62rem;color:#6b7280;font-weight:400}
+.log-frag{font-family:'Cormorant Garamond',serif;font-size:1rem;color:#1c1714}
+.log-del{background:none;border:none;color:#b8c1cf;cursor:pointer;font-size:.9rem;padding:.2rem;transition:color .2s}
+.log-del:hover{color:#c0503a}
+/* stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.8rem;margin-bottom:1.6rem}
+.stat-card{background:#fff;border:1px solid #dde2ea;padding:1.2rem;border-radius:3px}
+.stat-label{font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:#6b7280;margin-bottom:.4rem;font-weight:400}
+.stat-value{font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:400;color:#1c1714;line-height:1}
+.stat-sub{font-size:.7rem;color:#6b7280;margin-top:.3rem;font-style:italic;font-family:'Cormorant Garamond',serif}
+/* chart bars */
+.chart-card{background:#fff;border:1px solid #dde2ea;border-radius:3px;padding:1.2rem 1.4rem}
+.chart-title{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:#6b7280;margin-bottom:1rem;font-weight:400}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.8rem}
+.chart-wide{grid-column:1/-1}
+.bar-row{display:flex;align-items:center;gap:.7rem;margin-bottom:.6rem}
+.bar-label{font-size:.7rem;color:#3a3f4a;width:100px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:9px;background:#eef1f6;border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.bar-val{font-size:.65rem;color:#6b7280;min-width:26px;text-align:right}
+/* ranking */
+.rank-item{display:grid;grid-template-columns:26px 1fr auto;align-items:center;gap:.7rem;padding:.6rem .9rem;background:#fff;border:1px solid #dde2ea;border-radius:2px;margin-bottom:.3rem}
+.rank-num{font-family:'Cormorant Garamond',serif;font-size:.95rem;color:#6b7280;text-align:center}
+.rank-name{font-family:'Cormorant Garamond',serif;font-size:.95rem;color:#1c1714}
+.rank-brand{font-size:.6rem;color:#6b7280;font-family:'Josefin Sans',sans-serif;letter-spacing:.08em}
+.rank-cnt{font-size:.65rem;color:#1e3a5f;font-weight:400}
+/* collection */
+.coll-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.8rem;margin-bottom:1.2rem;flex-wrap:wrap}
+.coll-filters{display:flex;flex-wrap:wrap;gap:.4rem;flex:1}
+.filter-btn{padding:.35rem .8rem;font-family:'Josefin Sans',sans-serif;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;background:transparent;border:1px solid #b8c1cf;color:#6b7280;cursor:pointer;border-radius:2px;transition:all .18s}
+.filter-btn.active,.filter-btn:hover{background:#dbeafe;border-color:#1e3a5f;color:#1e3a5f}
+.coll-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.6rem}
+.coll-card{background:#fff;border:1px solid #dde2ea;padding:.9rem 1.1rem;border-radius:3px;cursor:pointer;transition:all .2s}
+.coll-card:hover{background:#f0f3f8;border-color:#b8c1cf;transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.coll-brand{font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;color:#1e3a5f;margin-bottom:.2rem;font-weight:400}
+.coll-name{font-family:'Cormorant Garamond',serif;font-size:1rem;color:#1c1714;margin-bottom:.5rem;line-height:1.3}
+.usage-dots{display:flex;gap:3px;flex-wrap:wrap;margin-top:.3rem}
+.dot{width:5px;height:5px;border-radius:50%;background:#b8c1cf;opacity:.4}
+.dot.used{opacity:.85;background:#2c5282}
+.dot.recent{opacity:1;background:#1e3a5f}
+.never-badge{font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;color:#6b7280;opacity:.6}
+.notes-badge{font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;color:#1e3a5f;margin-top:.3rem}
+/* buttons */
+.btn{padding:.55rem 1.4rem;font-family:'Josefin Sans',sans-serif;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;font-weight:400;cursor:pointer;border-radius:2px;transition:all .18s}
+.btn-primary{background:#1e3a5f;border:none;color:#fff}
+.btn-primary:hover{background:#2c5282}
+.btn-secondary{background:transparent;border:1px solid #b8c1cf;color:#6b7280}
+.btn-secondary:hover{border-color:#1e3a5f;color:#1e3a5f}
+.btn-danger{background:transparent;border:1px solid #b8c1cf;color:#6b7280}
+.btn-danger:hover{border-color:#c0503a;color:#c0503a}
+.btn-add{padding:.4rem 1rem;font-family:'Josefin Sans',sans-serif;font-size:.62rem;letter-spacing:.15em;text-transform:uppercase;background:#1e3a5f;border:none;color:#fff;cursor:pointer;border-radius:2px;transition:background .18s;white-space:nowrap}
+.btn-add:hover{background:#2c5282}
+/* modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(28,23,20,.45);z-index:2000;display:flex;align-items:center;justify-content:center;padding:1rem}
+.modal-box{background:#fff;border:1px solid #dde2ea;border-radius:4px;padding:1.8rem 2rem;max-width:500px;width:100%;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.12);max-height:88vh;overflow-y:auto}
+.modal-close{position:absolute;top:.9rem;right:.9rem;background:none;border:none;color:#6b7280;cursor:pointer;font-size:1rem;padding:.2rem;transition:color .18s}
+.modal-close:hover{color:#c0503a}
+.modal-brand-label{font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:#1e3a5f;margin-bottom:.2rem;font-weight:400}
+.modal-title-text{font-family:'Cormorant Garamond',serif;font-size:1.6rem;color:#1c1714;margin-bottom:.3rem}
+.modal-stats-text{font-size:.7rem;color:#6b7280;margin-bottom:1.2rem;padding-bottom:1rem;border-bottom:1px solid #dde2ea}
+/* usage history pills */
+.usage-month{margin-bottom:.8rem}
+.usage-month-label{font-size:.57rem;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;margin-bottom:.35rem;display:flex;align-items:center;gap:.4rem}
+.usage-month-cnt{color:#1e3a5f}
+.usage-pills{display:flex;flex-wrap:wrap;gap:.3rem}
+.usage-pill{display:inline-flex;align-items:center;gap:.3rem;background:#eef1f6;border:1px solid #dde2ea;border-radius:2px;padding:.18rem .5rem;font-size:.67rem;color:#3a3f4a}
+.usage-pill-ses{font-size:.53rem;color:#6b7280}
+.usage-history-wrap{max-height:180px;overflow-y:auto;margin-bottom:1rem}
+.usage-history-wrap::-webkit-scrollbar{width:3px}
+.usage-history-wrap::-webkit-scrollbar-thumb{background:#b8c1cf;border-radius:2px}
+/* cat btns */
+.cat-btn-row{display:flex;gap:.3rem;flex-wrap:wrap}
+.cat-btn{padding:.25rem .65rem;font-family:'Josefin Sans',sans-serif;font-size:.58rem;letter-spacing:.1em;font-weight:400;background:#fff;border:1px solid #b8c1cf;color:#6b7280;cursor:pointer;border-radius:2px;transition:all .15s}
+.cat-btn.active{color:#fff}
+.cat-btn:hover{border-color:#1e3a5f;color:#1e3a5f}
+/* modal inputs */
+.modal-input,.modal-textarea{width:100%;background:#faf8f5;border:1px solid #b8c1cf;color:#1c1714;padding:.65rem .85rem;font-family:'Josefin Sans',sans-serif;font-size:.8rem;font-weight:400;outline:none;border-radius:2px;transition:border-color .2s;margin-bottom:1rem}
+.modal-input:focus,.modal-textarea:focus{border-color:#1e3a5f}
+.modal-input::placeholder,.modal-textarea::placeholder{color:#6b7280}
+.modal-textarea{min-height:90px;resize:vertical}
+.modal-link-row{display:flex;gap:.5rem;align-items:center;margin-bottom:1rem}
+.modal-link-row .modal-input{margin-bottom:0;flex:1}
+.btn-fragrantica{padding:.5rem .85rem;font-family:'Josefin Sans',sans-serif;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;background:#dbeafe;border:1px solid #1e3a5f;color:#1e3a5f;text-decoration:none;border-radius:2px;white-space:nowrap;font-weight:400;transition:all .18s}
+.btn-fragrantica:hover{background:#1e3a5f;color:#fff}
+.modal-btn-row{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin-top:.4rem}
+/* donut */
+.donut-wrap{display:flex;gap:1.2rem;align-items:center;flex-wrap:wrap}
+.legend{display:flex;flex-direction:column;gap:.4rem;flex:1}
+.legend-item{display:flex;align-items:center;gap:.45rem;font-size:.7rem;color:#3a3f4a}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.legend-pct{margin-left:auto;color:#6b7280;font-size:.63rem}
+/* coll charts */
+.coll-charts-row{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-top:1.8rem}
+/* rec subtabs */
+.rec-tabs{display:flex;border-bottom:1px solid #dde2ea;margin-bottom:1.6rem;flex-wrap:wrap}
+.rec-tab{padding:.55rem 1.1rem;font-family:'Josefin Sans',sans-serif;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;font-weight:400;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;color:#6b7280;cursor:pointer;transition:all .18s}
+.rec-tab.active{color:#1e3a5f;border-bottom-color:#1e3a5f}
+.rec-intro{font-family:'Cormorant Garamond',serif;font-size:1rem;font-style:italic;color:#6b7280;margin-bottom:1.4rem;line-height:1.5}
+.rec-q-label{font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:#3a3f4a;font-weight:400;margin-bottom:.6rem}
+.rec-opts{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.4rem}
+.rec-opt{padding:.4rem .9rem;font-family:'Josefin Sans',sans-serif;font-size:.68rem;font-weight:400;background:#fff;border:1px solid #b8c1cf;color:#3a3f4a;cursor:pointer;border-radius:2px;transition:all .18s}
+.rec-opt.sel{background:#1e3a5f;border-color:#1e3a5f;color:#fff}
+.rec-opt:hover:not(.sel){border-color:#1e3a5f;color:#1e3a5f}
+.rec-card{background:#fff;border:1px solid #dde2ea;border-radius:3px;padding:1rem 1.2rem;margin-bottom:.7rem;display:flex;gap:1rem;align-items:flex-start}
+.rec-card-num{font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:#dde2ea;min-width:26px;text-align:center;border-right:1px solid #dde2ea;padding-right:.9rem;flex-shrink:0}
+.rec-card-brand{font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;color:#1e3a5f;margin-bottom:.18rem;font-weight:400}
+.rec-card-name{font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:#1c1714;margin-bottom:.3rem}
+.rec-card-reason{font-size:.7rem;color:#6b7280;line-height:1.5}
+.rec-tag{font-size:.53rem;letter-spacing:.08em;text-transform:uppercase;padding:.15rem .5rem;border-radius:2px;background:#eef1f6;color:#6b7280;display:inline-block;margin-right:.3rem;margin-top:.4rem}
+/* ai panel */
+.ai-mode-select{display:flex;gap:.4rem;margin-bottom:1.2rem;flex-wrap:wrap}
+.ai-mode-btn{padding:.45rem 1rem;font-family:'Josefin Sans',sans-serif;font-size:.62rem;letter-spacing:.1em;font-weight:400;background:#fff;border:1px solid #b8c1cf;color:#6b7280;cursor:pointer;border-radius:2px;transition:all .18s}
+.ai-mode-btn.active{background:#1e3a5f;border-color:#1e3a5f;color:#fff}
+.ai-mode-btn:hover:not(.active){border-color:#1e3a5f;color:#1e3a5f}
+.ai-textarea{width:100%;background:#faf8f5;border:1px solid #b8c1cf;color:#1c1714;padding:.7rem .85rem;font-family:'Josefin Sans',sans-serif;font-size:.8rem;font-weight:400;outline:none;border-radius:2px;resize:vertical;min-height:70px;margin-bottom:.9rem;transition:border-color .2s;line-height:1.5}
+.ai-textarea:focus{border-color:#1e3a5f}
+.ai-textarea::placeholder{color:#6b7280}
+.ai-input{width:100%;background:#faf8f5;border:1px solid #b8c1cf;color:#1c1714;padding:.65rem .85rem;font-family:'Josefin Sans',sans-serif;font-size:.82rem;font-weight:400;outline:none;border-radius:2px;margin-bottom:.8rem;transition:border-color .2s}
+.ai-input:focus{border-color:#1e3a5f}
+.ai-input::placeholder{color:#6b7280}
+.ai-result{background:#fff;border:1px solid #dde2ea;border-radius:3px;padding:1.2rem 1.5rem;margin-top:.5rem}
+.ai-result p{font-size:.82rem;line-height:1.7;color:#1c1714;margin-bottom:.5rem}
+.ai-result h3{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:600;color:#1c1714;margin:1rem 0 .35rem}
+.ai-result h3:first-child{margin-top:0}
+.ai-result ul{padding-left:1.1rem;margin-bottom:.6rem}
+.ai-result ul li{font-size:.82rem;color:#1c1714;line-height:1.6;margin-bottom:.2rem}
+.ai-loading{display:flex;align-items:center;gap:.7rem;color:#6b7280;font-size:.72rem;letter-spacing:.1em;padding:.8rem 0}
+.spinner{width:16px;height:16px;border:2px solid #dde2ea;border-top-color:#1e3a5f;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* analyst */
+.analyst-section{margin-top:2rem;background:#fff;border:1px solid #dde2ea;border-radius:3px;padding:1.5rem 1.8rem}
+.analyst-title{font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:#3a3f4a;font-weight:400;margin-bottom:.2rem}
+.analyst-sub{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.95rem;color:#6b7280;margin-bottom:1rem}
+.analyst-suggests{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:1rem}
+.analyst-sug{padding:.3rem .75rem;font-family:'Josefin Sans',sans-serif;font-size:.63rem;letter-spacing:.06em;font-weight:400;background:#eef1f6;border:1px solid #dde2ea;color:#6b7280;cursor:pointer;border-radius:2px;transition:all .16s;text-align:left}
+.analyst-sug:hover{background:#dbeafe;border-color:#1e3a5f;color:#1e3a5f}
+.analyst-input-row{display:flex;gap:.6rem;align-items:flex-end}
+.analyst-ta{flex:1;background:#faf8f5;border:1px solid #b8c1cf;color:#1c1714;padding:.7rem .85rem;font-family:'Josefin Sans',sans-serif;font-size:.8rem;font-weight:400;outline:none;border-radius:2px;resize:none;transition:border-color .2s;line-height:1.5}
+.analyst-ta:focus{border-color:#1e3a5f}
+.analyst-ta::placeholder{color:#6b7280}
+.analyst-send{width:40px;height:40px;background:#1e3a5f;border:none;color:#fff;font-size:1.1rem;cursor:pointer;border-radius:2px;transition:background .18s;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.analyst-send:hover{background:#2c5282}
+.analyst-send:disabled{background:#b8c1cf;cursor:not-allowed}
+.analyst-result-inner{font-size:.82rem;line-height:1.7;color:#1c1714;margin-top:1rem;padding-top:1rem;border-top:1px solid #dde2ea}
+.analyst-result-inner h3{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:600;color:#1c1714;margin:1rem 0 .35rem}
+.analyst-result-inner h3:first-child{margin-top:0}
+.analyst-result-inner p{margin-bottom:.55rem}
+.analyst-result-inner ul{padding-left:1.1rem;margin-bottom:.6rem}
+.analyst-result-inner ul li{margin-bottom:.2rem}
+/* toast */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1c1714;color:#fff;padding:.65rem 1.3rem;font-family:'Josefin Sans',sans-serif;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;border-radius:3px;z-index:9999;pointer-events:none;opacity:0;transform:translateY(10px);transition:all .3s}
+.toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:600px){.charts-row,.coll-charts-row{grid-template-columns:1fr}.chart-wide{grid-column:auto}.log-entry{grid-template-columns:70px 1fr auto auto}}
+`;
+
+// ── FRAG PROFILES for daily recommender ──────────────────────────────────
+const FRAG_PROFILES = {
+  "Acqua di Parma – Arancia di Capri":{occ:["casual","deporte"],temp:["templado","calor"],time:["dia","tarde"],style:["fresco"],tags:["cítrico","verano"]},
+  "Acqua di Parma – Bergamotto di Calabria":{occ:["casual","trabajo"],temp:["fresco","templado"],time:["dia","tarde"],style:["fresco","sofisticado"],tags:["cítrico","aromático"]},
+  "Acqua di Parma – Colonia Pura":{occ:["casual","trabajo"],temp:["fresco","templado"],time:["dia"],style:["fresco"],tags:["cítrico","limpio"]},
+  "Acqua di Parma – Fico di Amalfi":{occ:["casual","deporte"],temp:["templado","calor"],time:["dia"],style:["fresco"],tags:["cítrico","verano"]},
+  "Acqua di Parma – Vaniglia Eau de Parfum":{occ:["casual","cita"],temp:["frio","fresco"],time:["tarde","noche"],style:["dulce","sofisticado"],tags:["oriental","vainilla"]},
+  "Adolfo Domínguez – Citrus Cedro":{occ:["casual","deporte"],temp:["templado","calor"],time:["dia"],style:["fresco"],tags:["cítrico","ligero"]},
+  "Afnan – Turathi Blue":{occ:["casual","trabajo"],temp:["fresco","templado"],time:["dia","tarde"],style:["fresco","sofisticado"],tags:["aromático"]},
+  "Al Haramain – Detour Noir":{occ:["cita","noche","evento"],temp:["frio","fresco"],time:["tarde","noche"],style:["misterioso","intenso"],tags:["oriental","especiado"]},
+  "Amouage – Decision":{occ:["evento","noche","cita"],temp:["frio","fresco"],time:["tarde","noche"],style:["sofisticado","misterioso"],tags:["amaderado","lujo"]},
+  "Amouage – Interlude Black Iris":{occ:["evento","noche","cita"],temp:["frio","fresco"],time:["tarde","noche"],style:["misterioso","intenso"],tags:["oriental","amaderado","lujo"]},
+  "Amouage – Lustre":{occ:["trabajo","evento","cita"],temp:["fresco","templado"],time:["dia","tarde"],style:["sofisticado"],tags:["floral","amaderado","lujo"]},
+  "Amouage – Purpose 50":{occ:["trabajo","casual","evento"],temp:["frio","fresco","templado"],time:["dia","tarde"],style:["sofisticado","fresco"],tags:["amaderado","aromático","lujo"]},
+  "Amouage – Reflection 45":{occ:["trabajo","evento"],temp:["fresco","templado"],time:["dia","tarde"],style:["sofisticado","fresco"],tags:["aromático","limpio","lujo"]},
+  "Amouage – Reflection Man":{occ:["trabajo","casual","evento"],temp:["fresco","templado"],time:["dia","tarde"],style:["fresco","sofisticado"],tags:["aromático","limpio","lujo"]},
+  "Armaf – Club de Nuit Precieux I":{occ:["noche","evento","cita"],temp:["frio","fresco"],time:["tarde","noche"],style:["intenso","sofisticado"],tags:["amaderado","especiado"]},
+  "Bvlgari – Tygar":{occ:["trabajo","casual"],temp:["fresco","templado"],time:["dia","tarde"],style:["fresco","sofisticado"],tags:["amaderado","aromático"]},
+  "Chanel – Bleu de Chanel Eau de Parfum":{occ:["trabajo","casual","evento"],temp:["fresco","templado"],time:["dia","tarde"],style:["sofisticado","fresco"],tags:["amaderado","clásico","versátil"]},
+  "Chanel – Bleu de Chanel L'Exclusif":{occ:["evento","noche","cita"],temp:["frio","fresco"],time:["tarde","noche"],style:["sofisticado","intenso"],tags:["amaderado","lujo"]},
+  "Clinique – Happy for Men":{occ:["casual","deporte"],temp:["templado","calor"],time:["dia"],style:["fresco"],tags:["cítrico","limpio"]},
+  "Creed – Absolu Aventus":{occ:["evento","trabajo","cita"],temp:["frio","fresco","templado"],time:["dia","tarde","noche"],style:["sofisticado","intenso"],tags:["amaderado","frutal","lujo"]},
+  "Creed – Aventus Cologne":{occ:["casual","trabajo"],temp:["fresco","templado","calor"],time:["dia","tarde"],style:["fresco","sofisticado"],tags:["cítrico","amaderado","lujo"]},
+  "Dior – Homme Intense":{occ:["cita","evento","noche"],temp:["frio","fresco"],time:["tarde","noche"],style:["dulce","sofisticado"],tags:["oriental","iris"]},
+  "Dior – Homme Original":{occ:["trabajo","casual"],temp:["fresco","templado"],time:["dia","tarde"],style:["sofisticado","fresco"],tags:["aromático","iris","versátil"]},
+  "Dior – Homme Parfum":{occ:["evento","noche","cita"],temp:["frio","fresco"],time:["tarde","noche"],style:["intenso","misterioso"],tags:["cuero","amaderado","lujo"]},
+  "Dior – Sauvage Elixir":{occ:["noche","cita","evento"],temp:["frio","fresco"],time:["tarde","noche"],style:["intenso","misterioso"],tags:["amaderado","especiado"]},
+  "El Ganso – Bravo Monsieur":{occ:["casual","trabajo"],temp:["fresco","templado"],time:["dia"],style:["fresco"],tags:["aromático","ligero"]},
+  "El Ganso – Part Time Hero":{occ:["casual"],temp:["templado","calor"],time:["dia"],style:["fresco"],tags:["aromático","verano"]},
+  "Fragrance World – Oud Wonder":{occ:["noche","evento","cita"],temp:["frio","fresco"],time:["tarde","noche"],style:["misterioso","intenso"],tags:["oriental","oud"]},
+  "Giorgio Armani – Acqua di Giò Parfum":{occ:["casual","trabajo","evento"],temp:["templado","calor"],time:["dia","tarde"],style:["fresco","sofisticado"],tags:["acuático","marino","versátil"]},
+  "Giorgio Armani – Acqua di Giò Profondo EDP":{occ:["trabajo","casual"],temp:["fresco","templado"],time:["dia","tarde"],style:["fresco"],tags:["acuático","amaderado"]},
+  "Giorgio Armani – Acqua di Giò Profumo":{occ:["trabajo","cita","evento"],temp:["fresco","templado"],time:["dia","tarde"],style:["sofisticado","fresco"],tags:["acuático","amaderado","versátil"]},
+  "Jean Paul Gaultier – Le Male":{occ:["casual","cita","noche"],temp:["fresco","templado"],time:["tarde","noche"],style:["dulce","misterioso"],tags:["oriental","lavanda"]},
+  "Loewe – 001 Eau de Cologne":{occ:["casual","deporte"],temp:["templado","calor"],time:["dia"],style:["fresco"],tags:["cítrico","limpio"]},
+  "Loewe – 7 Anónimo":{occ:["trabajo","casual","evento"],temp:["fresco","templado"],time:["dia","tarde"],style:["sofisticado","fresco"],tags:["amaderado","especiado"]},
+  "Loewe – 7 Cobalt":{occ:["casual","deporte"],temp:["templado","calor"],time:["dia"],style:["fresco"],tags:["acuático","marino"]},
+  "Loewe – Agua Él":{occ:["casual","deporte"],temp:["templado","calor"],time:["dia"],style:["fresco"],tags:["acuático","ligero","verano"]},
+  "Loewe – Esencia Eau de Parfum":{occ:["trabajo","evento"],temp:["fresco","templado"],time:["dia","tarde"],style:["sofisticado"],tags:["aromático","clásico"]},
+  "Loewe – Esencia Elixir":{occ:["evento","cita","noche"],temp:["frio","fresco"],time:["tarde","noche"],style:["intenso","sofisticado"],tags:["amaderado","cuero"]},
+  "Loewe – Paula's Ibiza":{occ:["casual","deporte"],temp:["templado","calor"],time:["dia"],style:["fresco"],tags:["aromático","verano"]},
+  "Loewe – Solo":{occ:["trabajo","casual"],temp:["fresco","templado"],time:["dia","tarde"],style:["sofisticado"],tags:["amaderado","clásico"]},
+  "Loewe – Solo Platinum":{occ:["trabajo","casual"],temp:["frio","fresco"],time:["dia","tarde"],style:["fresco","sofisticado"],tags:["amaderado","limpio"]},
+  "Louis Vuitton – Imagination":{occ:["casual","trabajo"],temp:["fresco","templado","calor"],time:["dia","tarde"],style:["fresco","sofisticado"],tags:["acuático","limpio","lujo"]},
+  "Louis Vuitton – L'Immensité":{occ:["casual","trabajo"],temp:["templado","calor"],time:["dia"],style:["fresco"],tags:["acuático","marino","lujo"]},
+  "Louis Vuitton – Pacific Chill":{occ:["casual","deporte"],temp:["templado","calor"],time:["dia"],style:["fresco"],tags:["acuático","cítrico","lujo"]},
+  "Maison Crivelli – Iris Malikhan":{occ:["trabajo","evento","cita"],temp:["fresco","templado"],time:["dia","tarde"],style:["sofisticado"],tags:["floral","iris","nicho"]},
+  "Pacha Ibiza – Pure Men":{occ:["casual","deporte"],temp:["templado","calor"],time:["dia"],style:["fresco"],tags:["aromático","ligero"]},
+  "Prada – Infusion de Cèdre":{occ:["trabajo","casual"],temp:["fresco","templado"],time:["dia","tarde"],style:["fresco","sofisticado"],tags:["amaderado","cedro"]},
+  "Prada – L'Homme Intense":{occ:["cita","evento","noche"],temp:["frio","fresco"],time:["tarde","noche"],style:["dulce","intenso"],tags:["oriental","iris","amaderado"]},
+  "Prada – L'Homme L'Eau":{occ:["casual","trabajo","deporte"],temp:["templado","calor"],time:["dia"],style:["fresco"],tags:["aromático","ligero"]},
+  "Prada – Luna Rossa Black":{occ:["casual","trabajo","noche"],temp:["fresco","templado"],time:["dia","tarde","noche"],style:["fresco","sofisticado"],tags:["amaderado","aromático","versátil"]},
+  "Rituals – Roi d'Orient":{occ:["noche","evento"],temp:["frio","fresco"],time:["tarde","noche"],style:["misterioso","dulce"],tags:["oriental","especiado"]},
+  "Tom Ford – Ombre Leather":{occ:["noche","evento","cita"],temp:["frio","fresco"],time:["tarde","noche"],style:["misterioso","intenso"],tags:["cuero","amaderado","lujo"]},
+  "Valentino – Uomo Intense (2021)":{occ:["cita","noche","evento"],temp:["frio","fresco"],time:["tarde","noche"],style:["dulce","intenso"],tags:["oriental","especiado"]},
+  "Voux Emir – Zingy":{occ:["casual","deporte"],temp:["templado","calor"],time:["dia"],style:["fresco"],tags:["cítrico","ligero"]},
+  "Xerjoff – Torino 21":{occ:["evento","cita","noche"],temp:["frio","fresco"],time:["tarde","noche"],style:["sofisticado","intenso"],tags:["amaderado","lujo"]},
+  "Yves Saint Laurent – 6 Place Saint Sulpice":{occ:["casual","trabajo"],temp:["fresco","templado"],time:["dia","tarde"],style:["fresco","sofisticado"],tags:["aromático","lavanda"]},
+  "Zara – Sunrise on the Red Sand Dunes":{occ:["casual"],temp:["fresco","templado"],time:["dia","tarde"],style:["dulce"],tags:["oriental","dulce"]},
+  "Zara – Synth Aura":{occ:["casual","noche"],temp:["fresco","templado"],time:["tarde","noche"],style:["misterioso","fresco"],tags:["amaderado","sintético"]},
+};
+
+// ── STORAGE KEYS ──────────────────────────────────────────────────────────
+// ── LOCAL ANALYSIS ENGINE ─────────────────────────────────────────────────
+
+function h3(t) { return `<h3>${t}</h3>`; }
+function p(t)  { return `<p>${t}</p>`; }
+function ul(items) { return `<ul>${items.map(i=>`<li>${i}</li>`).join("")}</ul>`; }
+function bold(t) { return `<strong>${t}</strong>`; }
+
+function runLocalAnalysis(q, log, collection) {
+  const fragCount={};log.forEach(e=>{fragCount[e.frag]=(fragCount[e.frag]||0)+1;});
+  const lastUsed={};log.forEach(e=>{if(!lastUsed[e.frag]||e.date>lastUsed[e.frag])lastUsed[e.frag]=e.date;});
+  const monthCount={};log.forEach(e=>{const m=e.date.slice(0,7);monthCount[m]=(monthCount[m]||0)+1;});
+  const months=Object.keys(monthCount).sort();
+  const total=log.length||1;
+
+  // Rotación últimos N días
+  if (q.includes("rotaci") || q.includes("15 d") || q.includes("30 d") || q.includes("últimos")) {
+    const days = q.includes("15")? 15 : q.includes("7")? 7 : q.includes("90")? 90 : 30;
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-days);
+    const cutStr=cutoff.toISOString().split("T")[0];
+    const recent=log.filter(e=>e.date>=cutStr);
+    const recFrags=new Set(recent.map(e=>e.frag));
+    const recBrands={};recent.forEach(e=>{const b=e.frag.split(" – ")[0];recBrands[b]=(recBrands[b]||0)+1;});
+    const topRecBrand=Object.entries(recBrands).sort((a,b)=>b[1]-a[1])[0];
+    const notUsed=collection.filter(p=>!recFrags.has(fragKey(p)));
+    const topRec=Object.entries(recFrags).slice(0,5);
+    return h3(`Rotación — últimos ${days} días`)
+      + p(`Has usado ${bold(recFrags.size+" fragancias distintas")} en ${bold(recent.length+" usos")} durante este período.`)
+      + p(`Marca más activa: ${bold(topRecBrand?.[0]||"—")} con ${topRecBrand?.[1]||0} usos.`)
+      + h3("Fragancias usadas")
+      + ul([...recFrags].map(f=>`${f} — ${recent.filter(e=>e.frag===f).length} vez`))
+      + h3(`Sin usar en estos ${days} días (${notUsed.length} fragancias)`)
+      + ul(notUsed.slice(0,10).map(p=>`${fragKey(p)}${!lastUsed[fragKey(p)]?" — sin estrenar":` — último uso: ${fmtDate(lastUsed[fragKey(p)])}`}`))
+      + (notUsed.length>10?p(`...y ${notUsed.length-10} más.`):"");
+  }
+
+  // Abandonados
+  if (q.includes("abandon") || q.includes("olvidado") || q.includes("ignorado")) {
+    const sorted=collection
+      .map(p=>({key:fragKey(p),last:lastUsed[fragKey(p)]||null,cnt:fragCount[fragKey(p)]||0}))
+      .filter(x=>x.cnt>0)
+      .sort((a,b)=>a.last.localeCompare(b.last))
+      .slice(0,8);
+    return h3("Perfumes más abandonados")
+      + p("Fragancias que has usado pero llevan más tiempo sin aparecer en tu registro:")
+      + ul(sorted.map(x=>`${x.key} — último uso: ${fmtDate(x.last)} (${x.cnt} uso${x.cnt!==1?"s":""})`));
+  }
+
+  // Predicción top 10 fin de año
+  if (q.includes("predic") || q.includes("final de año") || q.includes("10 ")) {
+    // Weight recent months more heavily
+    const now=new Date();
+    const scores={};
+    log.forEach(e=>{
+      const d=new Date(e.date+"T12:00:00");
+      const monthsAgo=(now-d)/(1000*60*60*24*30);
+      const weight=Math.max(0.1, 1-(monthsAgo/12));
+      scores[e.frag]=(scores[e.frag]||0)+weight;
+    });
+    const top=Object.entries(scores).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const remaining=new Date(now.getFullYear(),11,31)-now;
+    const remDays=Math.round(remaining/(1000*60*60*24));
+    return h3("Predicción: top 10 a final de año")
+      + p(`Basado en tu historial ponderado (los usos recientes tienen más peso). Quedan ${bold(remDays+" días")} para fin de año.`)
+      + ul(top.map(([frag,score],i)=>{
+          const avgPerMonth=((fragCount[frag]||0)/months.length).toFixed(1);
+          return `${i+1}. ${bold(frag)} — media ${avgPerMonth} usos/mes`;
+        }))
+      + p("La ponderación favorece las fragancias con actividad reciente sobre las históricamente frecuentes.");
+  }
+
+  // Estacional
+  if (q.includes("estacion") || q.includes("verano") || q.includes("invierno") || q.includes("patrón")) {
+    const bySeason={primavera:[],verano:[],otoño:[],invierno:[]};
+    log.forEach(e=>{
+      const m=parseInt(e.date.slice(5,7));
+      if(m>=3&&m<=5) bySeason.primavera.push(e.frag);
+      else if(m>=6&&m<=8) bySeason.verano.push(e.frag);
+      else if(m>=9&&m<=11) bySeason.otoño.push(e.frag);
+      else bySeason.invierno.push(e.frag);
+    });
+    const topBySeason={};
+    for (const [s,frags] of Object.entries(bySeason)) {
+      const cnt={};frags.forEach(f=>{cnt[f]=(cnt[f]||0)+1;});
+      topBySeason[s]=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([f,c])=>`${f.split(" – ")[1]||f} (${c})`);
+    }
+    const icons={primavera:"🌸",verano:"☀️",otoño:"🍂",invierno:"❄️"};
+    return h3("Patrones estacionales de uso")
+      + Object.entries(topBySeason).map(([s,tops])=>
+          `<p>${icons[s]} <strong>${s.charAt(0).toUpperCase()+s.slice(1)}</strong> (${bySeason[s].length} usos): ${tops.join(", ")||"Sin datos"}</p>`
+        ).join("")
+      + h3("Observación")
+      + p(`Tu temporada de mayor actividad es ${bold(Object.entries(bySeason).sort((a,b)=>b[1].length-a[1].length)[0][0])} con ${Object.entries(bySeason).sort((a,b)=>b[1].length-a[1].length)[0][1].length} usos registrados.`);
+  }
+
+  // Más atención / infrautilizados
+  if (q.includes("atenci") || q.includes("infrautiliz") || q.includes("merec")) {
+    const never=collection.filter(p=>!fragCount[fragKey(p)]);
+    const rare=collection
+      .map(p=>({key:fragKey(p),cnt:fragCount[fragKey(p)]||0,last:lastUsed[fragKey(p)]||null}))
+      .filter(x=>x.cnt>0&&x.cnt<=2)
+      .sort((a,b)=>a.cnt-b.cnt);
+    return h3("Sin estrenar — merecen una oportunidad")
+      + (never.length>0 ? ul(never.map(p=>fragKey(p))) : p("¡Tienes todas estrenadas!"))
+      + h3("Muy poco usadas (1–2 veces)")
+      + (rare.length>0 ? ul(rare.map(x=>`${x.key} — ${x.cnt} uso${x.cnt!==1?"s":""}, último: ${x.last?fmtDate(x.last):"—"}`)) : p("No hay fragancias con menos de 3 usos."));
+  }
+
+  // Default: resumen general
+  const topFrags=Object.entries(fragCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const never=collection.filter(p=>!fragCount[fragKey(p)]).length;
+  const lastMonth=months[months.length-1];
+  return h3("Resumen de tu colección")
+    + p(`${bold(log.length+" usos")} registrados con ${bold(new Set(log.map(e=>e.frag)).size+" fragancias distintas")} de ${collection.length} en colección. ${bold(never)} sin estrenar.`)
+    + h3("Tus 5 más usadas")
+    + ul(topFrags.map(([f,c])=>`${f} — ${c} usos`))
+    + h3("Mes más reciente registrado")
+    + p(`${lastMonth||"—"}: ${monthCount[lastMonth]||0} usos.`)
+    + p("Prueba a preguntar: <em>rotación últimos 15 días</em>, <em>predicción a final de año</em>, <em>patrones estacionales</em>, <em>perfumes abandonados</em>, o <em>qué merece más atención</em>.");
+}
+
+// ── COMPRA/VENTA LOCAL ENGINES ────────────────────────────────────────────
+
+function analyzeCompraGeneral(collection, log, fragCount, lastUsed, famCount, collFamCount, topFamByUse, missingFams, totalUses) {
+  const neverUsed=collection.filter(p=>!fragCount[fragKey(p)]);
+  const overrepFam=Object.entries(collFamCount).sort((a,b)=>b[1]-a[1])[0];
+  const underrepFam=missingFams[0]||null;
+
+  // Gap analysis
+  const seasonCount={Calor:0,"Todo el año":0,Frío:0};
+  collection.forEach(p=>{const k=fragKey(p);seasonCount[SEASON_MAP[k]||"Todo el año"]++;});
+  const minSeason=Object.entries(seasonCount).sort((a,b)=>a[1]-b[1])[0];
+
+  const occCount={"Toda ocasión":0,Formal:0,Casual:0};
+  collection.forEach(p=>{const k=fragKey(p);occCount[OCCASION_MAP[k]||"Toda ocasión"]++;});
+  const minOcc=Object.entries(occCount).sort((a,b)=>a[1]-b[1])[0];
+
+  return h3("Análisis de huecos en tu colección")
+    + p(`Tienes ${bold(collection.length+" fragancias")}, de las cuales ${bold(neverUsed.length)} nunca has estrenado. Antes de comprar, considera si realmente necesitas una nueva.`)
+    + h3("Familia más usada vs colección")
+    + p(`Tu familia más usada es ${bold(topFamByUse)} (${Math.round((famCount[topFamByUse]||0)/totalUses*100)}% de tus usos), y también es la más representada en tu colección (${collFamCount[topFamByUse]||0} fragancias).`)
+    + (underrepFam ? p(`Hueco detectado: tienes ${bold("poca representación")} de la familia ${bold(underrepFam)}. Una fragancia de esta familia aportaría variedad real.`) : "")
+    + h3("Cobertura por estación / ocasión")
+    + p(`La estación menos cubierta es ${bold(minSeason[0])} con solo ${minSeason[1]} fragancias. La ocasión menos cubierta es ${bold(minOcc[0])} con ${minOcc[1]}.`)
+    + h3("Recomendación")
+    + ul([
+        underrepFam ? `Busca algo de familia ${bold(underrepFam)} — cubre un hueco real en tu rotación` : `Tu colección está bien equilibrada por familias`,
+        `Estación más débil: ${bold(minSeason[0])} — considera una fragancia específica para esa época`,
+        neverUsed.length>3 ? `Tienes ${neverUsed.length} fragancias sin estrenar — pruébalas antes de comprar` : `Has estrenado casi todo, tienes buen criterio de uso`,
+      ]);
+}
+
+function analyzeCompraEspecifico(name, collection, log, fragCount, collFamCount, topFamByUse) {
+  const nameLower=name.toLowerCase();
+  // Try to find in FAMILY_MAP by partial match
+  const matchKey=Object.keys(FAMILY_MAP).find(k=>k.toLowerCase().includes(nameLower)||nameLower.includes(k.toLowerCase().split(" – ")[1]||""));
+  const fam=matchKey?FAMILY_MAP[matchKey]:"desconocida";
+  const famInColl=collFamCount[fam]||0;
+  const totalInColl=collection.length;
+
+  // Check if already owned
+  const alreadyOwned=collection.some(p=>fragKey(p).toLowerCase().includes(nameLower));
+
+  const season=matchKey?SEASON_MAP[matchKey]||"Todo el año":"desconocida";
+  const occ=matchKey?OCCASION_MAP[matchKey]||"Toda ocasión":"desconocida";
+
+  // Similar frags already owned
+  const similar=matchKey ? collection.filter(p=>{
+    const k=fragKey(p);
+    return FAMILY_MAP[k]===fam && k!==matchKey;
+  }) : [];
+
+  const verdict = alreadyOwned ? "⚠️ Ya la tienes" :
+    similar.length>=4 ? "🟡 No prioritario" :
+    similar.length>=2 ? "🟢 Compra opcional" : "✅ Compra recomendada";
+
+  return h3(`Evaluación: ${name}`)
+    + p(`${bold("Familia:")} ${fam} · ${bold("Estación:")} ${season} · ${bold("Ocasión:")} ${occ}`)
+    + (alreadyOwned ? p(`⚠️ Ya tienes esta fragancia o una muy similar en tu colección.`) : "")
+    + h3("Encaje en tu colección")
+    + p(`Ya tienes ${bold(famInColl+" fragancias")} de familia ${fam} sobre ${totalInColl} en total (${Math.round(famInColl/totalInColl*100)}%).`)
+    + (similar.length>0 ? p(`Fragancias similares que ya posees: ${similar.map(p=>p.name).join(", ")}.`) : p("No tienes fragancias de esta familia — cubriría un hueco."))
+    + h3(`Veredicto: ${verdict}`)
+    + p(alreadyOwned ? "Revisa si realmente necesitas duplicar esta fragancia." :
+       similar.length>=4 ? "Tienes mucha representación de esta familia. Solo compra si te enamora especialmente." :
+       similar.length>=2 ? "Tienes algo similar pero no es redundante. Evalúa si el precio lo justifica." :
+       "Esta familia está poco representada en tu colección. Buen momento para incorporarla.");
+}
+
+function analyzeVentaGeneral(collection, log, fragCount, lastUsed, collFamCount) {
+  const now=todayStr();
+  const d90=new Date();d90.setDate(d90.getDate()-90);const d90s=d90.toISOString().split("T")[0];
+  const d180=new Date();d180.setDate(d180.getDate()-180);const d180s=d180.toISOString().split("T")[0];
+
+  // Candidates: never used, or used <2 times, or last used >180 days
+  const candidates=collection.map(p=>{
+    const key=fragKey(p);
+    const cnt=fragCount[key]||0;
+    const last=lastUsed[key]||null;
+    let score=0; const reasons=[];
+    if(!cnt){score+=3;reasons.push("nunca estrenado");}
+    if(cnt===1){score+=2;reasons.push("usado solo 1 vez");}
+    if(last&&last<d180s){score+=2;reasons.push(`sin usar desde ${fmtDate(last)}`);}
+    else if(last&&last<d90s){score+=1;reasons.push(`más de 90 días sin usar`);}
+    // Overrepresented family
+    const fam=FAMILY_MAP[key]||"Otra";
+    if((collFamCount[fam]||0)>=5){score+=1;reasons.push(`familia ${fam} muy representada (${collFamCount[fam]} frags)`);}
+    return{key,cnt,last,score,reasons,fam};
+  }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,6);
+
+  if(candidates.length===0) return h3("No hay candidatos claros a venta") + p("Tu colección está bien aprovechada. Ninguna fragancia destaca como candidata obvia a salir.");
+
+  return h3("Candidatos a salir de la colección")
+    + p("Ordenados por prioridad según uso real, tiempo sin usar y solapamiento de familia:")
+    + candidates.map((c,i)=>
+        `<p><strong>${i+1}. ${c.key}</strong><br/><span style="font-size:.8rem;color:#6b7280">${c.reasons.join(" · ")}</span></p>`
+      ).join("")
+    + h3("Consideración")
+    + p("Antes de vender, prueba la fragancia durante una semana. A veces el desapego se convierte en redescubrimiento.");
+}
+
+function analyzeVentaEspecifico(name, collection, log, fragCount, lastUsed) {
+  const nameLower=name.toLowerCase();
+  const match=collection.find(p=>fragKey(p).toLowerCase().includes(nameLower)||p.name.toLowerCase().includes(nameLower));
+  const key=match?fragKey(match):name;
+  const cnt=fragCount[key]||0;
+  const last=lastUsed[key]||null;
+  const fam=FAMILY_MAP[key]||null;
+
+  const d90=new Date();d90.setDate(d90.getDate()-90);
+  const isAbandoned=last&&new Date(last)<d90;
+  const neverUsed=cnt===0;
+
+  // How many similar in collection?
+  const similar=fam?collection.filter(p=>{const k=fragKey(p);return FAMILY_MAP[k]===fam&&k!==key;}):[];
+
+  const verdict = neverUsed ? "🟡 Valora venderlo" :
+    (isAbandoned && similar.length>=2) ? "✅ Vende" :
+    isAbandoned ? "🟡 Valora venderlo" :
+    cnt>=5 ? "❌ Quédate con él" : "🟡 Valora venderlo";
+
+  return h3(`Evaluación: vender ${name}`)
+    + p(`${bold("Familia:")} ${fam||"desconocida"} · ${bold("Usos totales:")} ${cnt} · ${bold("Último uso:")} ${last?fmtDate(last):"nunca"}`)
+    + h3("Análisis")
+    + ul([
+        neverUsed ? "Nunca lo has estrenado — puede que no sea para ti" : `Lo has usado ${cnt} vez${cnt!==1?"es":""}`,
+        last ? (isAbandoned ? `Lleva más de 90 días sin aparecer en tu registro — señal de desinterés` : `Lo has usado recientemente — probablemente lo sigues disfrutando`) : "Sin historial de uso",
+        similar.length>0 ? `Tienes ${similar.length} fragancia${similar.length>1?"s":""} similar${similar.length>1?"es":""} de la misma familia: ${similar.slice(0,3).map(p=>p.name).join(", ")}` : "Es tu única fragancia de esta familia — saldrías sin sustituto",
+      ])
+    + h3(`Veredicto: ${verdict}`)
+    + p(verdict.includes("Vende") ? "Los datos apuntan a que no lo estás aprovechando y tienes alternativas. Buen candidato a venta." :
+       verdict.includes("Valora") ? "Hay indicios de poco uso pero no es concluyente. Pruébalo conscientemente esta semana antes de decidir." :
+       "Lo usas con frecuencia y sin sustituto claro. No hay razón objetiva para venderlo.");
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────────────────
+function App() {
+  const [ready, setReady] = useState(false);
+  const [tab, setTab] = useState("hoy");
+  const [log, setLog] = useState([]);
+  const [collection, setCollection] = useState([]);
+  const [fichas, setFichas] = useState({});
+  const [cats, setCats] = useState({});
+  const [sensaciones, setSensaciones] = useState({}); // { logId: { proyeccion, duracion, nota } }
+  const [rotDays, setRotDays] = useState(30); // alert threshold
+  const [toast, setToast] = useState("");
+  const [toastVisible, setToastVisible] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("");
+  const toastTimer = useRef(null);
+  const saveTimer = useRef(null);
+
+  // Load all data on mount
+  useEffect(() => {
+    (async () => {
+      const [savedLog, savedColl, savedFichas, savedCats, seeded, savedSens, savedRotDays] = await Promise.all([
+        store.get(SK.log), store.get(SK.coll), store.get(SK.fichas), store.get(SK.cats),
+        store.get(SK.seeded), store.get("sillage-sens"), store.get("sillage-rotdays"),
+      ]);
+      const initialLog = savedLog || HISTORY_RAW.map(([date,frag,session]) => ({
+        id: `${date}_${session}_${frag}`, date, frag, session
+      }));
+      const initialColl = savedColl || COLLECTION_DEFAULT.map(p=>({brand:p.brand,name:p.name}));
+      setLog(initialLog);
+      setCollection(initialColl);
+      setFichas(savedFichas || {});
+      setCats(savedCats || {});
+      setSensaciones(savedSens || {});
+      if (savedRotDays !== null) setRotDays(savedRotDays);
+      // Only write defaults if never seeded before
+      if (!seeded) {
+        await Promise.all([
+          store.set(SK.log, initialLog),
+          store.set(SK.coll, initialColl),
+          store.set(SK.fichas, savedFichas || {}),
+          store.set(SK.cats, savedCats || {}),
+          store.set(SK.seeded, true),
+        ]);
+      }
+      setReady(true);
+    })();
+  }, []);
+
+  const showSaveStatus = useCallback(() => {
+    setSaveStatus("guardando...");
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => setSaveStatus("✓ guardado"), 600);
+    setTimeout(() => setSaveStatus(""), 3000);
+  }, []);
+
+  const showToast = useCallback((msg) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(msg); setToastVisible(true);
+    toastTimer.current = setTimeout(() => setToastVisible(false), 2400);
+  }, []);
+
+  const saveLog = useCallback(async (newLog) => {
+    setLog(newLog);
+    showSaveStatus();
+    await store.set(SK.log, newLog);
+  }, [showSaveStatus]);
+
+  const saveColl = useCallback(async (newColl) => {
+    setCollection(newColl);
+    showSaveStatus();
+    await store.set(SK.coll, newColl);
+  }, [showSaveStatus]);
+
+  const saveFichas = useCallback(async (newFichas) => {
+    setFichas(newFichas);
+    showSaveStatus();
+    await store.set(SK.fichas, newFichas);
+  }, [showSaveStatus]);
+
+  const saveCats = useCallback(async (newCats) => {
+    setCats(newCats);
+    showSaveStatus();
+    await store.set(SK.cats, newCats);
+  }, [showSaveStatus]);
+
+  const saveSensaciones = useCallback(async (newSens) => {
+    setSensaciones(newSens);
+    showSaveStatus();
+    await store.set("sillage-sens", newSens);
+  }, [showSaveStatus]);
+
+  const saveRotDays = useCallback(async (days) => {
+    setRotDays(days);
+    await store.set("sillage-rotdays", days);
+  }, []);
+
+  const getSeason = (key) => (cats[key]?.season) || SEASON_MAP[key] || "Todo el año";
+  const getOccasion = (key) => (cats[key]?.occasion) || OCCASION_MAP[key] || "Toda ocasión";
+
+  if (!ready) return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",fontFamily:"'Josefin Sans',sans-serif",fontSize:".7rem",letterSpacing:".2em",color:"#6b7280",textTransform:"uppercase",background:"#faf8f5"}}>
+      Cargando...
+    </div>
+  );
+
+  const TABS = ["hoy","registro","estadisticas","coleccion","recomendador","comparador"];
+  const TAB_LABELS = {hoy:"Hoy",registro:"Registro",estadisticas:"Estadísticas",coleccion:"Colección",recomendador:"Recomendador",comparador:"Comparador"};
+
+  const exportData = () => {
+    const data = { log, collection, fichas, cats, sensaciones, rotDays, exportedAt: todayStr() };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sillage-backup-${todayStr()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("Backup exportado ✦");
+  };
+
+  const importData = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (data.log) { setLog(data.log); await store.set(SK.log, data.log); }
+        if (data.collection) { setCollection(data.collection); await store.set(SK.coll, data.collection); }
+        if (data.fichas) { setFichas(data.fichas); await store.set(SK.fichas, data.fichas); }
+        if (data.cats) { setCats(data.cats); await store.set(SK.cats, data.cats); }
+        if (data.sensaciones) { setSensaciones(data.sensaciones); await store.set("sillage-sens", data.sensaciones); }
+        if (data.rotDays) { setRotDays(data.rotDays); await store.set("sillage-rotdays", data.rotDays); }
+        showToast("Backup restaurado ✦");
+      } catch { showToast("Error al leer el archivo"); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  return (
+    <div className="sil">
+      <style>{CSS}</style>
+      <div className="sil-wrap">
+        <header className="sil-header">
+          <div className="sil-brand">Sillage</div>
+          <div className="sil-tagline">Diario personal de fragancias</div>
+          {saveStatus && <div style={{fontSize:".55rem",letterSpacing:".15em",textTransform:"uppercase",color:saveStatus.startsWith("✓")?"#1e3a5f":"#9ca3af",marginTop:".3rem"}}>{saveStatus}</div>}
+          <div style={{display:"flex",justifyContent:"center",gap:".5rem",marginTop:".8rem"}}>
+            <button onClick={exportData} style={{padding:".3rem .9rem",fontFamily:"'Josefin Sans',sans-serif",fontSize:".58rem",letterSpacing:".14em",textTransform:"uppercase",background:"transparent",border:"1px solid #b8c1cf",color:"#6b7280",cursor:"pointer",borderRadius:2}}>
+              ↓ Exportar backup
+            </button>
+            <label style={{padding:".3rem .9rem",fontFamily:"'Josefin Sans',sans-serif",fontSize:".58rem",letterSpacing:".14em",textTransform:"uppercase",background:"transparent",border:"1px solid #b8c1cf",color:"#6b7280",cursor:"pointer",borderRadius:2}}>
+              ↑ Importar backup
+              <input type="file" accept=".json" onChange={importData} style={{display:"none"}}/>
+            </label>
+          </div>
+        </header>
+        <div className="sil-tabs">
+          {TABS.map(t => <button key={t} className={`sil-tab${tab===t?" active":""}`} onClick={()=>setTab(t)}>{TAB_LABELS[t]}</button>)}
+        </div>
+        <div className="sil-panel">
+          {tab==="hoy" && <TabHoy log={log} collection={collection} saveLog={saveLog} sensaciones={sensaciones} saveSensaciones={saveSensaciones} rotDays={rotDays} saveRotDays={saveRotDays} showToast={showToast}/>}
+          {tab==="registro" && <TabRegistro log={log} saveLog={saveLog} sensaciones={sensaciones} showToast={showToast}/>}
+          {tab==="estadisticas" && <TabStats log={log} collection={collection}/>}
+          {tab==="coleccion" && <TabColeccion log={log} collection={collection} fichas={fichas} cats={cats} saveColl={saveColl} saveFichas={saveFichas} saveCats={saveCats} getSeason={getSeason} getOccasion={getOccasion} showToast={showToast}/>}
+          {tab==="recomendador" && <TabRecomendador log={log} collection={collection}/>}
+          {tab==="comparador" && <TabComparador log={log} collection={collection} fichas={fichas} cats={cats} sensaciones={sensaciones} getSeason={getSeason} getOccasion={getOccasion}/>}
+        </div>
+      </div>
+      <div className={`toast${toastVisible?" show":""}`}>{toast}</div>
+    </div>
+  );
+}
+
+// ── TAB: HOY ──────────────────────────────────────────────────────────────
+function TabHoy({log, collection, saveLog, sensaciones, saveSensaciones, rotDays, saveRotDays, showToast}) {
+  const [selDate, setSelDate] = useState(todayStr());
+  const [session, setSession] = useState("día");
+  const [search, setSearch] = useState("");
+  const [sensModal, setSensModal] = useState(null); // { id, frag } after logging
+  const [sensForm, setSensForm] = useState({proyeccion:"", duracion:"", nota:""});
+
+  const dt = new Date(selDate+"T12:00:00");
+  const dateLabel = `${DAYS_ES[dt.getDay()]}, ${dt.getDate()} de ${MONTHS_ES[dt.getMonth()]} de ${dt.getFullYear()}`;
+  const isToday = selDate === todayStr();
+  const dayEntries = log.filter(e=>e.date===selDate);
+
+  const filtered = search
+    ? collection.filter(p=>(p.brand+" "+p.name).toLowerCase().includes(search.toLowerCase()))
+    : collection;
+
+  // Rotation alerts
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - rotDays);
+  const cutoffStr = cutoff.toISOString().split("T")[0];
+  const lastUsedMap = {};
+  log.forEach(e=>{if(!lastUsedMap[e.frag]||e.date>lastUsedMap[e.frag])lastUsedMap[e.frag]=e.date;});
+  const sleeping = collection
+    .map(p=>({p, key:fragKey(p), last:lastUsedMap[fragKey(p)]||null}))
+    .filter(({last})=>!last||last<cutoffStr)
+    .sort((a,b)=>{
+      if(!a.last&&!b.last)return 0;
+      if(!a.last)return -1;
+      if(!b.last)return 1;
+      return a.last.localeCompare(b.last);
+    })
+    .slice(0,5);
+
+  const logPerfume = async (frag) => {
+    const existing = log.find(e=>e.date===selDate&&e.session===session);
+    const id = Date.now().toString();
+    let newLog;
+    if (existing) {
+      newLog = log.map(e=>e.id===existing.id?{...e,frag}:e);
+      setSensModal({id: existing.id, frag});
+    } else {
+      newLog = [...log, {id, date:selDate, frag, session}];
+      setSensModal({id, frag});
+    }
+    await saveLog(newLog);
+    showToast(isToday?"Registrado ✦":`Registrado para ${fmtDate(selDate)} ✦`);
+    setSearch("");
+    setSensForm({proyeccion:"", duracion:"", nota:""});
+  };
+
+  const saveSens = async () => {
+    if (!sensModal) return;
+    const newSens = {...sensaciones, [sensModal.id]: sensForm};
+    await saveSensaciones(newSens);
+    setSensModal(null);
+    showToast("Sensaciones guardadas ✦");
+  };
+
+  const PROY = ["Muy baja","Baja","Media","Alta","Bestial"];
+  const DUR  = ["< 2h","2–4h","4–6h","6–8h","Todo el día"];
+
+  return (
+    <div>
+      <div className="today-card">
+        <div className="today-date">{isToday?"hoy · ":""}{dateLabel}</div>
+        <div className="today-frags">
+          {dayEntries.length===0
+            ? <span className="today-empty">— Sin registrar aún —</span>
+            : dayEntries.map(e=><span key={e.id} style={{display:"flex",alignItems:"center",gap:".4rem",flexWrap:"wrap"}}>
+                {e.frag.split(" – ")[1]||e.frag} <span className="badge">{e.session}</span>
+                {sensaciones[e.id]?.nota && <span style={{fontSize:".65rem",color:"#6b7280",fontStyle:"italic",fontFamily:"'Cormorant Garamond',serif"}}>"{sensaciones[e.id].nota}"</span>}
+              </span>)
+          }
+        </div>
+      </div>
+
+      {/* Rotation alerts */}
+      {sleeping.length > 0 && (
+        <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:3,padding:"1rem 1.2rem",marginBottom:"1.4rem"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:".7rem",flexWrap:"wrap",gap:".5rem"}}>
+            <div style={{fontSize:".6rem",letterSpacing:".18em",textTransform:"uppercase",color:"#92400e",fontWeight:400}}>
+              💤 Durmiendo más de {rotDays} días
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:".4rem"}}>
+              <span style={{fontSize:".6rem",color:"#92400e"}}>Umbral:</span>
+              {[14,30,60,90].map(d=>(
+                <button key={d} onClick={()=>saveRotDays(d)}
+                  style={{padding:".2rem .5rem",fontSize:".58rem",background:rotDays===d?"#92400e":"transparent",color:rotDays===d?"#fff":"#92400e",border:"1px solid #92400e",borderRadius:2,cursor:"pointer"}}>
+                  {d}d
+                </button>
+              ))}
+            </div>
+          </div>
+          {sleeping.map(({p,key,last})=>(
+            <div key={key} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:".4rem 0",borderBottom:"1px solid #fde68a"}}>
+              <div>
+                <span style={{fontSize:".55rem",letterSpacing:".12em",textTransform:"uppercase",color:"#92400e"}}>{p.brand} </span>
+                <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:".95rem",color:"#1c1714"}}>{p.name}</span>
+              </div>
+              <div style={{fontSize:".62rem",color:"#92400e"}}>
+                {last?`${fmtDate(last)}`:"Sin estrenar"}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="sec-label">Registrar uso</div>
+      <div className="date-sess-row">
+        <div>
+          <span className="pick-label">Fecha</span>
+          <input type="date" className="date-input" value={selDate} onChange={e=>setSelDate(e.target.value)} max={todayStr()}/>
+        </div>
+        <div>
+          <span className="pick-label">Momento</span>
+          <div className="session-row">
+            {["día","tarde","noche"].map(s=><button key={s} className={`sess-btn${session===s?" active":""}`} onClick={()=>setSession(s)}>{s}</button>)}
+          </div>
+        </div>
+      </div>
+
+      <div className="search-wrap">
+        <span className="search-icon">◈</span>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Busca una fragancia..."/>
+      </div>
+
+      <div className="perf-grid">
+        {filtered.map(p=>{
+          const key=fragKey(p);
+          return (
+            <div key={key} className="perf-item" onClick={()=>logPerfume(key)}>
+              <div className="perf-brand">{p.brand}</div>
+              <div className="perf-name">{p.name}</div>
+            </div>
+          );
+        })}
+        {search && filtered.length===0 && (
+          <div className="perf-item" onClick={()=>logPerfume(search+" (decant)")}>
+            <div className="perf-brand">Decant</div>
+            <div className="perf-name">{search}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Sensaciones modal */}
+      {sensModal && (
+        <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)setSensModal(null);}}>
+          <div className="modal-box">
+            <button className="modal-close" onClick={()=>setSensModal(null)}>✕</button>
+            <div className="modal-brand-label">Diario de sensaciones</div>
+            <div className="modal-title-text" style={{marginBottom:"1.2rem"}}>{sensModal.frag.split(" – ")[1]||sensModal.frag}</div>
+
+            <div className="sec-label" style={{marginTop:0}}>Proyección</div>
+            <div className="cat-btn-row" style={{marginBottom:"1rem"}}>
+              {PROY.map(p=><button key={p} className={`cat-btn${sensForm.proyeccion===p?" active":""}`}
+                style={sensForm.proyeccion===p?{background:"#1e3a5f",borderColor:"#1e3a5f",color:"#fff"}:{}}
+                onClick={()=>setSensForm(f=>({...f,proyeccion:p}))}>{p}</button>)}
+            </div>
+
+            <div className="sec-label" style={{marginTop:0}}>Duración</div>
+            <div className="cat-btn-row" style={{marginBottom:"1rem"}}>
+              {DUR.map(d=><button key={d} className={`cat-btn${sensForm.duracion===d?" active":""}`}
+                style={sensForm.duracion===d?{background:"#1e3a5f",borderColor:"#1e3a5f",color:"#fff"}:{}}
+                onClick={()=>setSensForm(f=>({...f,duracion:d}))}>{d}</button>)}
+            </div>
+
+            <div className="sec-label" style={{marginTop:0}}>Nota libre</div>
+            <textarea className="modal-textarea" value={sensForm.nota}
+              onChange={e=>setSensForm(f=>({...f,nota:e.target.value}))}
+              placeholder="¿Cómo te ha sentado hoy? ¿Algo que destacar del batch, proyección, longevidad...?"/>
+
+            <div className="modal-btn-row">
+              <button className="btn btn-primary" onClick={saveSens}>Guardar sensaciones</button>
+              <button className="btn btn-secondary" onClick={()=>setSensModal(null)}>Omitir</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── TAB: REGISTRO ─────────────────────────────────────────────────────────
+function TabRegistro({log, saveLog, sensaciones, showToast}) {
+  const sorted = [...log].sort((a,b)=>b.date.localeCompare(a.date)||a.session.localeCompare(b.session));
+
+  const del = async (id) => {
+    const newLog = log.filter(e=>e.id!==id);
+    await saveLog(newLog);
+    showToast("Entrada eliminada");
+  };
+
+  return (
+    <div>
+      <div className="sec-label" style={{marginTop:0}}>Historial completo</div>
+      {sorted.length===0 && <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",color:"#6b7280",padding:"2rem 0"}}>No hay entradas aún.</div>}
+      {sorted.map(e=>{
+        const s = sensaciones[e.id];
+        return (
+          <div key={e.id} style={{marginBottom:".35rem"}}>
+            <div className="log-entry">
+              <div className="log-date">{fmtDate(e.date)}</div>
+              <div className="log-frag">{e.frag}</div>
+              <div><span className="badge">{e.session}</span></div>
+              <button className="log-del" onClick={()=>del(e.id)}>✕</button>
+            </div>
+            {s && (s.proyeccion||s.duracion||s.nota) && (
+              <div style={{background:"#f8fafc",border:"1px solid #dde2ea",borderTop:"none",borderRadius:"0 0 3px 3px",padding:".4rem .9rem",display:"flex",gap:".8rem",flexWrap:"wrap",alignItems:"center"}}>
+                {s.proyeccion && <span style={{fontSize:".62rem",color:"#3a3f4a"}}><span style={{color:"#6b7280"}}>Proy:</span> {s.proyeccion}</span>}
+                {s.duracion  && <span style={{fontSize:".62rem",color:"#3a3f4a"}}><span style={{color:"#6b7280"}}>Dur:</span> {s.duracion}</span>}
+                {s.nota      && <span style={{fontSize:".68rem",fontStyle:"italic",color:"#3a3f4a",fontFamily:"'Cormorant Garamond',serif"}}>"{s.nota}"</span>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── TAB: ESTADÍSTICAS ─────────────────────────────────────────────────────
+function TabStats({log, collection}) {
+  const [analystQuery, setAnalystQuery] = useState("");
+  const [analystResult, setAnalystResult] = useState("");
+  const [analystLoading, setAnalystLoading] = useState(false);
+
+  const total = log.length;
+  const uniqueFrags = new Set(log.map(e=>e.frag)).size;
+  const unused = collection.filter(p=>!log.some(e=>e.frag===fragKey(p))).length;
+  const dayMap = {}; log.forEach(e=>{dayMap[e.date]=(dayMap[e.date]||0)+1;});
+  const multiDays = Object.values(dayMap).filter(v=>v>1).length;
+  const brandCount = {}; log.forEach(e=>{const b=e.frag.split(" – ")[0];brandCount[b]=(brandCount[b]||0)+1;});
+  const topBrand = Object.entries(brandCount).sort((a,b)=>b[1]-a[1])[0]||["—",0];
+
+  // Streak
+  const dates = [...new Set(log.map(e=>e.date))].sort().reverse();
+  let streak=0, check=todayStr();
+  for (const d of dates) {
+    if(d===check){streak++;const dt=new Date(check+"T12:00:00");dt.setDate(dt.getDate()-1);check=dt.toISOString().split("T")[0];}else break;
+  }
+
+  // Brand chart top 8
+  const topBrands = Object.entries(brandCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxB = topBrands[0]?.[1]||1;
+  const palette=["#1e3a5f","#2c5282","#3b6cb7","#5585c8","#7aa4d8","#9fbfe5","#c4d9f0","#ddeaf8"];
+
+  // Families donut
+  const famCount = {}; log.forEach(e=>{const f=FAMILY_MAP[e.frag]||"Otra";famCount[f]=(famCount[f]||0)+1;});
+  const famEntries = Object.entries(famCount).sort((a,b)=>b[1]-a[1]);
+  const R=54,cx=70,cy=70,stroke=20,circ=2*Math.PI*R;
+  let offset=0;
+  const donutSegs = famEntries.map(([fam,cnt])=>{
+    const pct=cnt/total; const dash=pct*circ;
+    const seg={fam,cnt,dash,offset};offset+=dash;return seg;
+  });
+
+  // Monthly bars
+  const monthCount={}; log.forEach(e=>{const m=e.date.slice(0,7);monthCount[m]=(monthCount[m]||0)+1;});
+  const months=Object.keys(monthCount).sort();
+  const maxM=Math.max(...Object.values(monthCount),1);
+  const monthNames={1:"Ene",2:"Feb",3:"Mar",4:"Abr",5:"May",6:"Jun",7:"Jul",8:"Ago",9:"Sep",10:"Oct",11:"Nov",12:"Dic"};
+
+  // Sessions
+  const sesCount={"día":0,"tarde":0,"noche":0};
+  log.forEach(e=>{const s=e.session==="mañana"?"día":e.session;sesCount[s]=(sesCount[s]||0)+1;});
+  const sesEntries=Object.entries(sesCount).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const maxS=sesEntries[0]?.[1]||1;
+
+  // Rotation
+  const d30=new Date(),d90=new Date(),d180=new Date();
+  d30.setDate(d30.getDate()-30);d90.setDate(d90.getDate()-90);d180.setDate(d180.getDate()-180);
+  const [s30,s90,s180]=[d30,d90,d180].map(d=>d.toISOString().split("T")[0]);
+  const rot=[
+    {label:"30 días",count:new Set(log.filter(e=>e.date>=s30).map(e=>e.frag)).size},
+    {label:"90 días",count:new Set(log.filter(e=>e.date>=s90).map(e=>e.frag)).size},
+    {label:"180 días",count:new Set(log.filter(e=>e.date>=s180).map(e=>e.frag)).size},
+  ];
+  const maxR=rot[0].count||1;
+
+  // Top 15
+  const fragCount={}; log.forEach(e=>{fragCount[e.frag]=(fragCount[e.frag]||0)+1;});
+  const top15=Object.entries(fragCount).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  const maxF=top15[0]?.[1]||1;
+
+  // Analyst
+  const SUGGESTIONS=["Evalúa la rotación de los últimos 15 días","¿Qué perfume he abandonado más recientemente?","Predice mis 10 más usados a final de año","¿Hay algún patrón estacional en mis elecciones?","¿Qué perfumes merecen más atención?"];
+
+  const sendAnalyst = () => {
+    if (!analystQuery.trim()) return;
+    setAnalystLoading(true); setAnalystResult("");
+    setTimeout(() => {
+      try {
+        const result = runLocalAnalysis(analystQuery.trim().toLowerCase(), log, collection);
+        setAnalystResult(result);
+      } catch(e) {
+        setAnalystResult("<p style='color:#c0503a'>Error al procesar la consulta.</p>");
+      }
+      setAnalystLoading(false);
+    }, 400);
+  };
+
+  return (
+    <div>
+      <div className="stats-grid">
+        {[
+          {label:"Usos registrados",val:total,sub:`${multiDays} días con 2+ fragancias`},
+          {label:"Fragancias distintas usadas",val:uniqueFrags,sub:`de ${collection.length} · ${unused} sin estrenar`},
+          {label:"Racha actual",val:`🕯 ${streak}`,sub:"días consecutivos"},
+          {label:"Marca favorita",val:topBrand[0],sub:`${topBrand[1]} usos`,small:true},
+        ].map(s=>(
+          <div key={s.label} className="stat-card">
+            <div className="stat-label">{s.label}</div>
+            <div className="stat-value" style={s.small?{fontSize:"1.3rem"}:{}}>{s.val}</div>
+            <div className="stat-sub">{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="charts-row">
+        <div className="chart-card">
+          <div className="chart-title">Top marcas por usos</div>
+          {topBrands.map(([brand,cnt],i)=>(
+            <div key={brand} className="bar-row">
+              <div className="bar-label" title={brand}>{brand}</div>
+              <div className="bar-track"><div className="bar-fill" style={{width:`${cnt/maxB*100}%`,background:palette[i]}}/></div>
+              <div className="bar-val">{cnt}</div>
+            </div>
+          ))}
+        </div>
+        <div className="chart-card">
+          <div className="chart-title">Familias olfativas</div>
+          <div className="donut-wrap">
+            <svg width="140" height="140" viewBox="0 0 140 140" style={{flexShrink:0}}>
+              <circle cx={cx} cy={cy} r={R} fill="none" stroke="#eef1f6" strokeWidth={stroke}/>
+              {donutSegs.map(s=>(
+                <circle key={s.fam} cx={cx} cy={cy} r={R} fill="none"
+                  stroke={C.fam[s.fam]||C.fam.Otra} strokeWidth={stroke}
+                  strokeDasharray={`${s.dash.toFixed(2)} ${(circ-s.dash).toFixed(2)}`}
+                  strokeDashoffset={(-(s.offset)+circ/4).toFixed(2)}
+                  transform={`rotate(-90,${cx},${cy})`}/>
+              ))}
+            </svg>
+            <div className="legend">
+              {famEntries.map(([fam,cnt])=>(
+                <div key={fam} className="legend-item">
+                  <div className="legend-dot" style={{background:C.fam[fam]||C.fam.Otra}}/>
+                  <span>{fam}</span>
+                  <span className="legend-pct">{Math.round(cnt/total*100)}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="charts-row">
+        <div className="chart-card chart-wide">
+          <div className="chart-title">Usos por mes</div>
+          <div style={{overflowX:"auto"}}>
+            <svg viewBox={`0 0 ${Math.max(600,months.length*42)} 120`} style={{minWidth:Math.max(600,months.length*42),width:"100%",display:"block"}}>
+              {months.map((m,i)=>{
+                const v=monthCount[m]; const W=Math.max(600,months.length*42);
+                const step=(W-60)/months.length; const bw=Math.min(28,step-6);
+                const x=30+i*step+step/2-bw/2; const bh=(v/maxM)*90; const y=100-bh;
+                const [yr,mo]=m.split("-");
+                return (
+                  <g key={m}>
+                    <rect x={x} y={y} width={bw} height={bh} rx="2" fill="#1e3a5f" opacity=".8"/>
+                    <text x={x+bw/2} y="115" textAnchor="middle" fontSize="8" fill="#6b7280" fontFamily="'Josefin Sans',sans-serif">{monthNames[parseInt(mo)]} {yr.slice(2)}</text>
+                    <text x={x+bw/2} y={y-4} textAnchor="middle" fontSize="8" fill="#3a3f4a" fontFamily="'Josefin Sans',sans-serif">{v}</text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div className="charts-row">
+        <div className="chart-card">
+          <div className="chart-title">Momento del día</div>
+          {sesEntries.map(([ses,cnt],i)=>(
+            <div key={ses} className="bar-row">
+              <div className="bar-label" style={{textTransform:"capitalize"}}>{ses}</div>
+              <div className="bar-track"><div className="bar-fill" style={{width:`${cnt/maxS*100}%`,background:palette[i]}}/></div>
+              <div className="bar-val">{Math.round(cnt/total*100)}%</div>
+            </div>
+          ))}
+        </div>
+        <div className="chart-card">
+          <div className="chart-title">Rotación de colección</div>
+          <div style={{fontSize:".65rem",color:"#6b7280",marginBottom:".8rem",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic"}}>Fragancias distintas sobre {collection.length}</div>
+          {rot.map(({label,count},i)=>(
+            <div key={label} className="bar-row">
+              <div className="bar-label">{label}</div>
+              <div className="bar-track"><div className="bar-fill" style={{width:`${count/maxR*100}%`,background:palette[i]}}/></div>
+              <div className="bar-val">{count}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="sec-label">Top 15 más usadas</div>
+      {top15.map(([frag,cnt],i)=>{
+        const [brand,...rest]=frag.split(" – ");
+        return (
+          <div key={frag} className="rank-item">
+            <div className="rank-num">{i+1}</div>
+            <div>
+              <div className="rank-name">{rest.join(" – ")||frag}</div>
+              <div className="rank-brand">{brand}</div>
+              <div className="bar-wrap" style={{height:3,background:"#eef1f6",marginTop:4,borderRadius:2,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${cnt/maxF*100}%`,background:"#2c5282",borderRadius:2}}/>
+              </div>
+            </div>
+            <div className="rank-cnt">{cnt}×</div>
+          </div>
+        );
+      })}
+
+      <div className="analyst-section">
+        <div className="analyst-title">Analista de datos</div>
+        <div className="analyst-sub">Haz cualquier consulta sobre tu historial, tendencias o predicciones</div>
+        <div className="analyst-suggests">
+          {SUGGESTIONS.map(s=><button key={s} className="analyst-sug" onClick={()=>setAnalystQuery(s)}>{s}</button>)}
+        </div>
+        <div className="analyst-input-row">
+          <textarea className="analyst-ta" rows={2} value={analystQuery} onChange={e=>setAnalystQuery(e.target.value)}
+            onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendAnalyst();}}}
+            placeholder="Escribe tu consulta aquí..."/>
+          <button className="analyst-send" onClick={sendAnalyst} disabled={analystLoading}>→</button>
+        </div>
+        {analystLoading && <div className="ai-loading"><div className="spinner"/><span>Analizando tus datos...</span></div>}
+        {analystResult && <div className="analyst-result-inner" dangerouslySetInnerHTML={{__html:analystResult}}/>}
+      </div>
+    </div>
+  );
+}
+
+// ── TAB: COLECCIÓN ────────────────────────────────────────────────────────
+function TabColeccion({log, collection, fichas, cats, saveColl, saveFichas, saveCats, getSeason, getOccasion, showToast}) {
+  const [brandFilter, setBrandFilter] = useState("Todos");
+  const [modalKey, setModalKey] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addBrand, setAddBrand] = useState("");
+  const [addName, setAddName] = useState("");
+  const [modalNotes, setModalNotes] = useState("");
+  const [modalLink, setModalLink] = useState("");
+  const [modalSeason, setModalSeason] = useState("");
+  const [modalOccasion, setModalOccasion] = useState("");
+
+  const today30 = new Date(); today30.setDate(today30.getDate()-30);
+  const t30 = today30.toISOString().split("T")[0];
+
+  const brands = ["Todos",...new Set(collection.map(p=>p.brand))].sort();
+  const filtered = brandFilter==="Todos" ? collection : collection.filter(p=>p.brand===brandFilter);
+
+  const usageCount = (key) => log.filter(e=>e.frag===key).length;
+  const lastUsed = (key) => {
+    const dates = log.filter(e=>e.frag===key).map(e=>e.date).sort();
+    return dates[dates.length-1]||null;
+  };
+
+  const openFicha = (key) => {
+    const f = fichas[key]||{};
+    setModalNotes(f.notes||"");
+    setModalLink(f.link||"");
+    setModalSeason(getSeason(key));
+    setModalOccasion(getOccasion(key));
+    setModalKey(key);
+  };
+
+  const saveFicha = async () => {
+    const newFichas = {...fichas,[modalKey]:{notes:modalNotes,link:modalLink}};
+    const newCats = {...cats,[modalKey]:{season:modalSeason,occasion:modalOccasion}};
+    await saveFichas(newFichas);
+    await saveCats(newCats);
+    setModalKey(null);
+    showToast("Ficha guardada ✦");
+  };
+
+  const deleteFrag = async () => {
+    if (!confirm(`¿Eliminar "${modalKey}" de la colección?`)) return;
+    const [brand,...rest]=modalKey.split(" – ");
+    const name=rest.join(" – ");
+    await saveColl(collection.filter(p=>!(p.brand===brand&&p.name===name)));
+    setModalKey(null);
+    showToast("Fragancia eliminada");
+  };
+
+  const addFrag = async () => {
+    if (!addBrand.trim()||!addName.trim()){showToast("Rellena marca y nombre");return;}
+    const key=`${addBrand.trim()} – ${addName.trim()}`;
+    if (collection.some(p=>fragKey(p)===key)){showToast("Ya está en la colección");return;}
+    const newColl=[...collection,{brand:addBrand.trim(),name:addName.trim()}].sort((a,b)=>a.brand.localeCompare(b.brand)||a.name.localeCompare(b.name));
+    await saveColl(newColl);
+    setShowAdd(false);setAddBrand("");setAddName("");
+    showToast(`${key} añadido ✦`);
+  };
+
+  // Ficha data
+  const modalFrag = modalKey ? modalKey.split(" – ") : [];
+  const modalBrand = modalFrag[0]||"";
+  const modalName = modalFrag.slice(1).join(" – ")||"";
+  const modalCount = modalKey ? usageCount(modalKey) : 0;
+  const modalLast = modalKey ? lastUsed(modalKey) : null;
+  const modalHistory = modalKey ? [...log].filter(e=>e.frag===modalKey).sort((a,b)=>b.date.localeCompare(a.date)) : [];
+  const byMonth = {};
+  modalHistory.forEach(e=>{const m=e.date.slice(0,7);if(!byMonth[m])byMonth[m]=[];byMonth[m].push(e);});
+
+  // Season/occasion charts
+  const seasonOrder=["Calor","Todo el año","Frío"];
+  const occOrder=["Toda ocasión","Formal","Casual"];
+  const sBuckets={Calor:[],["Todo el año"]:[],Frío:[]};
+  const oBuckets={["Toda ocasión"]:[],Formal:[],Casual:[]};
+  collection.forEach(p=>{const key=fragKey(p);sBuckets[getSeason(key)].push(key);oBuckets[getOccasion(key)].push(key);});
+  const sMax=Math.max(...Object.values(sBuckets).map(b=>b.length),1);
+  const oMax=Math.max(...Object.values(oBuckets).map(b=>b.length),1);
+
+  const updateCat = async (key,type,val) => {
+    const newCats={...cats,[key]:{...cats[key],[type]:val}};
+    await saveCats(newCats);
+  };
+
+  return (
+    <div>
+      <div className="coll-top">
+        <div className="coll-filters">
+          {brands.map(b=><button key={b} className={`filter-btn${brandFilter===b?" active":""}`} onClick={()=>setBrandFilter(b)}>{b}</button>)}
+        </div>
+        <button className="btn-add" onClick={()=>setShowAdd(true)}>+ Añadir</button>
+      </div>
+
+      <div className="coll-grid">
+        {filtered.map(p=>{
+          const key=fragKey(p);
+          const cnt=usageCount(key);
+          const last=lastUsed(key);
+          const dots=Math.min(cnt,20);
+          const recent=log.filter(e=>e.frag===key&&e.date>=t30).length;
+          const old=Math.max(0,dots-recent);
+          const f=fichas[key]||{};
+          return (
+            <div key={key} className="coll-card" onClick={()=>openFicha(key)}>
+              <div className="coll-brand">{p.brand}</div>
+              <div className="coll-name">{p.name}</div>
+              {cnt>0
+                ? <><div style={{fontSize:".65rem",color:"#6b7280"}}>{cnt} uso{cnt!==1?"s":""} · último {last?fmtDate(last):"—"}</div>
+                    <div className="usage-dots">{Array(old).fill(0).map((_,i)=><span key={`o${i}`} className="dot used"/>)}{Array(Math.min(recent,dots)).fill(0).map((_,i)=><span key={`r${i}`} className="dot recent"/>)}</div></>
+                : <div className="never-badge">Sin estrenar</div>
+              }
+              {f.notes&&<div className="notes-badge">· Notas ·</div>}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Season / Occasion charts */}
+      <div className="coll-charts-row">
+        <CollChart title="Por estación" order={seasonOrder} buckets={sBuckets} maxV={sMax} colors={C.season} type="season" getSeason={getSeason} getOccasion={getOccasion} updateCat={updateCat} otherColors={C.occ} otherFn={getOccasion}/>
+        <CollChart title="Por ocasión" order={occOrder} buckets={oBuckets} maxV={oMax} colors={C.occ} type="occasion" getSeason={getSeason} getOccasion={getOccasion} updateCat={updateCat} otherColors={C.season} otherFn={getSeason}/>
+      </div>
+
+      {/* Ficha modal */}
+      {modalKey && (
+        <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)setModalKey(null);}}>
+          <div className="modal-box">
+            <button className="modal-close" onClick={()=>setModalKey(null)}>✕</button>
+            <div className="modal-brand-label">{modalBrand}</div>
+            <div className="modal-title-text">{modalName}</div>
+            <div className="modal-stats-text">
+              {modalCount>0?`${modalCount} uso${modalCount!==1?"s":""} · último: ${modalLast?fmtDate(modalLast):"—"}`:"Sin usos registrados aún"}
+            </div>
+
+            {/* History */}
+            <div className="sec-label" style={{marginTop:0}}>Historial de usos</div>
+            <div className="usage-history-wrap" style={{marginBottom:"1rem"}}>
+              {modalHistory.length===0
+                ? <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",color:"#6b7280",fontSize:".9rem"}}>Sin usos registrados.</div>
+                : Object.keys(byMonth).sort().reverse().map(m=>{
+                    const [y,mo]=m.split("-");
+                    return (
+                      <div key={m} className="usage-month">
+                        <div className="usage-month-label">{MONTHS_ES[parseInt(mo)-1]} {y} <span className="usage-month-cnt">{byMonth[m].length}×</span></div>
+                        <div className="usage-pills">{byMonth[m].map((e,i)=><span key={i} className="usage-pill">{fmtDate(e.date)}<span className="usage-pill-ses">{e.session}</span></span>)}</div>
+                      </div>
+                    );
+                  })
+              }
+            </div>
+
+            {/* Categories */}
+            <div className="sec-label" style={{marginTop:0}}>Estación</div>
+            <div className="cat-btn-row" style={{marginBottom:"1rem"}}>
+              {seasonOrder.map(s=><button key={s} className={`cat-btn${modalSeason===s?" active":""}`} style={modalSeason===s?{background:C.season[s],borderColor:C.season[s]}:{}} onClick={()=>setModalSeason(s)}>{s}</button>)}
+            </div>
+            <div className="sec-label" style={{marginTop:0}}>Ocasión</div>
+            <div className="cat-btn-row" style={{marginBottom:"1.2rem"}}>
+              {occOrder.map(o=><button key={o} className={`cat-btn${modalOccasion===o?" active":""}`} style={modalOccasion===o?{background:C.occ[o],borderColor:C.occ[o]}:{}} onClick={()=>setModalOccasion(o)}>{o}</button>)}
+            </div>
+
+            {/* Link */}
+            <div className="sec-label" style={{marginTop:0}}>Fragrantica</div>
+            <div className="modal-link-row">
+              <input className="modal-input" type="url" value={modalLink} onChange={e=>setModalLink(e.target.value)} placeholder="https://www.fragrantica.es/perfume/..."/>
+              {modalLink.startsWith("http")&&<a className="btn-fragrantica" href={modalLink} target="_blank" rel="noopener">Abrir →</a>}
+            </div>
+
+            {/* Notes */}
+            <div className="sec-label" style={{marginTop:0}}>Notas personales</div>
+            <textarea className="modal-textarea" value={modalNotes} onChange={e=>setModalNotes(e.target.value)} placeholder="Batch, backup, impresiones..."/>
+
+            <div className="modal-btn-row">
+              <button className="btn btn-primary" onClick={saveFicha}>Guardar</button>
+              <button className="btn btn-danger" onClick={deleteFrag}>Eliminar de la colección</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add modal */}
+      {showAdd && (
+        <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)setShowAdd(false);}}>
+          <div className="modal-box">
+            <button className="modal-close" onClick={()=>setShowAdd(false)}>✕</button>
+            <div className="modal-title-text" style={{marginBottom:"1.4rem"}}>Nueva fragancia</div>
+            <div className="sec-label" style={{marginTop:0}}>Marca</div>
+            <input className="modal-input" value={addBrand} onChange={e=>setAddBrand(e.target.value)} placeholder="Ej: Dior"/>
+            <div className="sec-label" style={{marginTop:0}}>Nombre</div>
+            <input className="modal-input" value={addName} onChange={e=>setAddName(e.target.value)} placeholder="Ej: Sauvage Parfum"/>
+            <button className="btn btn-primary" onClick={addFrag}>Añadir a la colección</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CollChart({title,order,buckets,maxV,colors,type,updateCat,otherColors,otherFn}) {
+  const [openCat,setOpenCat]=useState(null);
+  const total=Object.values(buckets).reduce((s,b)=>s+b.length,0)||1;
+  return (
+    <div className="chart-card">
+      <div className="chart-title">{title}</div>
+      {order.map(cat=>(
+        <div key={cat}>
+          <div className="bar-row" style={{cursor:"pointer"}} onClick={()=>setOpenCat(openCat===cat?null:cat)}>
+            <div className="bar-label">{cat}</div>
+            <div className="bar-track"><div className="bar-fill" style={{width:`${buckets[cat].length/maxV*100}%`,background:colors[cat]}}/></div>
+            <div className="bar-val">{buckets[cat].length} <span style={{color:"#6b7280",fontSize:".58rem"}}>({Math.round(buckets[cat].length/total*100)}%)</span> <span style={{fontSize:".6rem",color:"#6b7280"}}>{openCat===cat?"▴":"▾"}</span></div>
+          </div>
+          {openCat===cat && (
+            <div style={{background:"#eef1f6",border:"1px solid #dde2ea",borderRadius:2,padding:".5rem .7rem",marginBottom:".4rem"}}>
+              {buckets[cat].length===0
+                ? <div style={{fontSize:".7rem",color:"#6b7280",fontStyle:"italic",fontFamily:"'Cormorant Garamond',serif"}}>Ninguna fragancia.</div>
+                : buckets[cat].map(key=>{
+                    const [brand,...rest]=key.split(" – ");
+                    const other=otherFn(key);
+                    return (
+                      <div key={key} style={{padding:".45rem 0",borderBottom:"1px solid #dde2ea"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:".5rem",marginBottom:".3rem",flexWrap:"wrap"}}>
+                          <span style={{fontSize:".55rem",letterSpacing:".12em",textTransform:"uppercase",color:"#1e3a5f",fontFamily:"'Josefin Sans',sans-serif"}}>{brand}</span>
+                          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:".95rem",color:"#1c1714"}}>{rest.join(" – ")}</span>
+                          <span style={{marginLeft:"auto",fontSize:".55rem",padding:".12rem .45rem",borderRadius:2,background:`${otherColors[other]}20`,color:otherColors[other],border:`1px solid ${otherColors[other]}40`}}>{other}</span>
+                        </div>
+                        <div className="cat-btn-row">
+                          {order.map(c=><button key={c} className={`cat-btn${c===cat?" active":""}`} style={c===cat?{background:colors[c],borderColor:colors[c],color:"#fff"}:{}} onClick={()=>updateCat(key,type,c)}>{c}</button>)}
+                        </div>
+                      </div>
+                    );
+                  })
+              }
+            </div>
+          )}
+        </div>
+      ))}
+      <div style={{marginTop:".8rem",fontSize:".65rem",color:"#6b7280",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic"}}>Pulsa barra para ver y editar</div>
+    </div>
+  );
+}
+
+// ── TAB: RECOMENDADOR ─────────────────────────────────────────────────────
+function TabRecomendador({log, collection}) {
+  const [recTab,setRecTab]=useState("diario");
+  return (
+    <div>
+      <div className="rec-tabs">
+        {[["diario","Recomendador diario"],["compra","Compra"],["venta","Venta"]].map(([id,label])=>(
+          <button key={id} className={`rec-tab${recTab===id?" active":""}`} onClick={()=>setRecTab(id)}>{label}</button>
+        ))}
+      </div>
+      {recTab==="diario" && <RecDiario log={log} collection={collection}/>}
+      {recTab==="compra" && <RecIA log={log} collection={collection} mode="compra"/>}
+      {recTab==="venta" && <RecIA log={log} collection={collection} mode="venta"/>}
+    </div>
+  );
+}
+
+function RecDiario({log,collection}) {
+  const [sel,setSel]=useState({occasion:null,temp:null,time:null,style:null,recency:null});
+  const [results,setResults]=useState(null);
+
+  const questions=[
+    {id:"occasion",label:"¿Cuál es la ocasión?",opts:[["casual","Casual / diario"],["trabajo","Trabajo / oficina"],["cita","Cita romántica"],["evento","Evento / gala"],["deporte","Deporte / exterior"],["noche","Salida nocturna"]]},
+    {id:"temp",label:"¿Qué temperatura se prevé?",opts:[["frio","Frío (< 10 °C)"],["fresco","Fresco (10–18 °C)"],["templado","Templado (18–25 °C)"],["calor","Calor (> 25 °C)"]]},
+    {id:"time",label:"¿Momento del día?",opts:[["dia","Día"],["tarde","Tarde"],["noche","Noche"]]},
+    {id:"style",label:"¿Qué estilo buscas hoy?",opts:[["fresco","Fresco y limpio"],["intenso","Intenso y potente"],["sofisticado","Sofisticado y elegante"],["dulce","Dulce y cálido"],["misterioso","Oscuro y misterioso"]]},
+    {id:"recency",label:"¿Cuándo lo usaste por última vez?",opts:[["cualquiera","No importa"],["noreciente","Que no sea reciente (+7 días)"],["nousado","Que no lo haya usado aún"]]},
+  ];
+
+  const lastUsedMap = {};
+  log.forEach(e=>{if(!lastUsedMap[e.frag]||e.date>lastUsedMap[e.frag])lastUsedMap[e.frag]=e.date;});
+  const week=new Date();week.setDate(week.getDate()-7);const weekStr=week.toISOString().split("T")[0];
+
+  const recommend = () => {
+    const scores = collection.map(p=>{
+      const key=fragKey(p);const prof=FRAG_PROFILES[key];if(!prof)return{key,score:0,tags:[]};
+      let score=0;
+      if(sel.occasion&&prof.occ.includes(sel.occasion))score+=3;
+      if(sel.temp&&prof.temp.includes(sel.temp))score+=2;
+      if(sel.time&&prof.time.includes(sel.time))score+=2;
+      if(sel.style&&prof.style.includes(sel.style))score+=3;
+      const last=lastUsedMap[key];
+      if(sel.recency==="noreciente"&&last&&last>=weekStr)score=-1;
+      if(sel.recency==="nousado"&&last)score=-1;
+      if(!last)score+=.5;else if(last<weekStr)score+=.3;
+      return{key,score,tags:prof.tags};
+    });
+    setResults(scores.filter(s=>s.score>0).sort((a,b)=>b.score-a.score).slice(0,5));
+  };
+
+  const REC_REASONS={
+    occasion:{casual:"ideal para el día a día",trabajo:"apropiado para el trabajo",cita:"seductor para una cita",evento:"a la altura del evento",deporte:"fresco para actividad física",noche:"perfecto para salir de noche"},
+    temp:{frio:"proyecta bien en frío",fresco:"excelente en fresco",templado:"versátil en templado",calor:"aguanta bien el calor"},
+    style:{fresco:"fresco y limpio",intenso:"gran proyección",sofisticado:"elegante y sofisticado",dulce:"cálido y envolvente",misterioso:"oscuro y cautivador"},
+  };
+
+  if (results) return (
+    <div>
+      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.4rem",fontStyle:"italic",color:"#1c1714",marginBottom:"1.2rem"}}>Tu selección de hoy</div>
+      {results.length===0&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",color:"#6b7280"}}>Sin coincidencias. Prueba a cambiar los parámetros.</div>}
+      {results.map(({key,tags},i)=>{
+        const [brand,...rest]=key.split(" – ");
+        const reasons=[sel.occasion?REC_REASONS.occasion[sel.occasion]:null,sel.temp?REC_REASONS.temp[sel.temp]:null,sel.style?REC_REASONS.style[sel.style]:null].filter(Boolean);
+        const last=lastUsedMap[key];
+        return (
+          <div key={key} className="rec-card">
+            <div className="rec-card-num">{i+1}</div>
+            <div>
+              <div className="rec-card-brand">{brand}</div>
+              <div className="rec-card-name">{rest.join(" – ")}</div>
+              <div className="rec-card-reason">{reasons.join(" · ")} · {last?`Último: ${fmtDate(last)}`:"Sin estrenar"}</div>
+              <div>{tags.map(t=><span key={t} className="rec-tag">{t}</span>)}</div>
+            </div>
+          </div>
+        );
+      })}
+      <button className="btn btn-secondary" style={{marginTop:".8rem"}} onClick={()=>setResults(null)}>← Cambiar parámetros</button>
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="rec-intro">Responde las preguntas y te sugiero los perfumes más adecuados.</div>
+      {questions.map(q=>(
+        <div key={q.id} style={{marginBottom:"1.2rem"}}>
+          <div className="rec-q-label">{q.label}</div>
+          <div className="rec-opts">
+            {q.opts.map(([val,label])=><button key={val} className={`rec-opt${sel[q.id]===val?" sel":""}`} onClick={()=>setSel(s=>({...s,[q.id]:val}))}>{label}</button>)}
+          </div>
+        </div>
+      ))}
+      <button className="btn btn-primary" onClick={recommend}>Ver recomendación →</button>
+    </div>
+  );
+}
+
+function RecIA({log,collection,mode}) {
+  const [aiMode,setAiMode]=useState("general");
+  const [specific,setSpecific]=useState("");
+  const [result,setResult]=useState(null);
+
+  const isCompra=mode==="compra";
+
+  const fragCount={};log.forEach(e=>{fragCount[e.frag]=(fragCount[e.frag]||0)+1;});
+  const lastUsed={};log.forEach(e=>{if(!lastUsed[e.frag]||e.date>lastUsed[e.frag])lastUsed[e.frag]=e.date;});
+  const famCount={};log.forEach(e=>{const f=FAMILY_MAP[e.frag]||"Otra";famCount[f]=(famCount[f]||0)+1;});
+  const totalUses=log.length||1;
+
+  // Family distribution in collection
+  const collFamCount={};
+  collection.forEach(p=>{const k=fragKey(p);const f=FAMILY_MAP[k]||"Otra";collFamCount[f]=(collFamCount[f]||0)+1;});
+
+  // Most used family by usage %
+  const topFamByUse=Object.entries(famCount).sort((a,b)=>b[1]-a[1])[0]?.[0]||"Amaderada";
+  // Least represented family in collection
+  const allFams=["Acuática","Amaderada","Aromática","Cítrica","Oriental","Floral","Cuero"];
+  const missingFams=allFams.filter(f=>!collFamCount[f]||(collFamCount[f]<2&&(famCount[f]||0)/totalUses>0.05));
+
+  const analyze = () => {
+    if (isCompra) {
+      if (aiMode==="general") {
+        setResult(analyzeCompraGeneral(collection, log, fragCount, lastUsed, famCount, collFamCount, topFamByUse, missingFams, totalUses));
+      } else {
+        if (!specific.trim()) return;
+        setResult(analyzeCompraEspecifico(specific.trim(), collection, log, fragCount, collFamCount, topFamByUse));
+      }
+    } else {
+      if (aiMode==="general") {
+        setResult(analyzeVentaGeneral(collection, log, fragCount, lastUsed, collFamCount));
+      } else {
+        if (!specific.trim()) return;
+        setResult(analyzeVentaEspecifico(specific.trim(), collection, log, fragCount, lastUsed));
+      }
+    }
+  };
+
+  return (
+    <div>
+      <div className="rec-intro">
+        {isCompra?"Analizo tu colección y te ayudo a decidir tu próxima compra.":"Analizo tu colección y te ayudo a decidir qué perfumes podrían salir."}
+      </div>
+      <div className="ai-mode-select">
+        <button className={`ai-mode-btn${aiMode==="general"?" active":""}`} onClick={()=>{setAiMode("general");setResult(null);}}>
+          {isCompra?"¿Qué me recomiendas añadir?":"¿Qué me recomiendas vender?"}
+        </button>
+        <button className={`ai-mode-btn${aiMode==="especifico"?" active":""}`} onClick={()=>{setAiMode("especifico");setResult(null);}}>
+          {isCompra?"Evalúa un perfume concreto":"Evalúa vender un perfume"}
+        </button>
+      </div>
+
+      {!result && (
+        <>
+          {aiMode==="especifico" && (
+            <>
+              <div className="rec-q-label">{isCompra?"¿Qué perfume te planteas comprar?":"¿Qué perfume te planteas vender?"}</div>
+              <input className="ai-input" value={specific} onChange={e=>setSpecific(e.target.value)}
+                placeholder={isCompra?"Ej: Dior Sauvage Parfum, Creed Viking...":"Escribe el nombre exacto de la fragancia..."}
+                style={{marginBottom:"1rem"}}/>
+            </>
+          )}
+          <button className="btn btn-primary" onClick={analyze}>Analizar →</button>
+        </>
+      )}
+
+      {result && (
+        <>
+          <div className="ai-result" dangerouslySetInnerHTML={{__html:result}}/>
+          <button className="btn btn-secondary" style={{marginTop:".8rem"}} onClick={()=>setResult(null)}>← Nueva consulta</button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── TAB: COMPARADOR ───────────────────────────────────────────────────────
+function TabComparador({log, collection, fichas, cats, sensaciones, getSeason, getOccasion}) {
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState([]); // max 3 keys
+
+  const lastUsedMap = {};
+  log.forEach(e=>{if(!lastUsedMap[e.frag]||e.date>lastUsedMap[e.frag])lastUsedMap[e.frag]=e.date;});
+  const usageCount = (key) => log.filter(e=>e.frag===key).length;
+
+  const filtered = search
+    ? collection.filter(p=>(p.brand+" "+p.name).toLowerCase().includes(search.toLowerCase()))
+    : collection;
+
+  const toggle = (key) => {
+    if (selected.includes(key)) setSelected(s=>s.filter(k=>k!==key));
+    else if (selected.length < 3) setSelected(s=>[...s,key]);
+  };
+
+  // Sensaciones summary for a key
+  const sensSummary = (key) => {
+    const entries = log.filter(e=>e.frag===key&&sensaciones[e.id]);
+    if (entries.length===0) return null;
+    const proys = entries.map(e=>sensaciones[e.id].proyeccion).filter(Boolean);
+    const durs  = entries.map(e=>sensaciones[e.id].duracion).filter(Boolean);
+    const notes = entries.map(e=>sensaciones[e.id].nota).filter(Boolean);
+    const lastNote = notes[notes.length-1];
+    return {
+      proyeccion: proys.length ? proys[proys.length-1] : null,
+      duracion:   durs.length  ? durs[durs.length-1]   : null,
+      lastNote,
+      count: entries.length,
+    };
+  };
+
+  const ROW_LABELS = ["Marca","Familia","Estación","Ocasión","Usos totales","Último uso","Proyección","Duración","Notas","Fragrantica"];
+
+  const getCellVal = (key, row) => {
+    const [brand,...rest] = key.split(" – ");
+    const name = rest.join(" – ");
+    const cnt = usageCount(key);
+    const last = lastUsedMap[key];
+    const s = sensSummary(key);
+    const f = fichas[key]||{};
+    switch(row) {
+      case "Marca":      return brand;
+      case "Familia":    return FAMILY_MAP[key] || "—";
+      case "Estación":   return getSeason(key);
+      case "Ocasión":    return getOccasion(key);
+      case "Usos totales": return cnt > 0 ? `${cnt} uso${cnt!==1?"s":""}` : "Sin estrenar";
+      case "Último uso": return last ? fmtDate(last) : "—";
+      case "Proyección": return s?.proyeccion || "—";
+      case "Duración":   return s?.duracion   || "—";
+      case "Notas":      return s?.lastNote   || f.notes?.slice(0,60)||(f.notes?"...":"—");
+      case "Fragrantica":return f.link ? "Ver →" : "—";
+      default: return "—";
+    }
+  };
+
+  const getLink = (key) => fichas[key]?.link || null;
+
+  const colW = selected.length === 1 ? "60%" : selected.length === 2 ? "45%" : "32%";
+
+  return (
+    <div>
+      <div className="rec-intro">Selecciona hasta 3 fragancias para comparar lado a lado.</div>
+
+      {/* Selected chips */}
+      {selected.length > 0 && (
+        <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",marginBottom:"1rem"}}>
+          {selected.map(key=>{
+            const [brand,...rest]=key.split(" – ");
+            return (
+              <div key={key} style={{display:"inline-flex",alignItems:"center",gap:".4rem",background:"#dbeafe",border:"1px solid #1e3a5f",borderRadius:2,padding:".3rem .7rem"}}>
+                <span style={{fontSize:".62rem",color:"#1e3a5f"}}>{brand} – {rest.join(" – ")}</span>
+                <button onClick={()=>toggle(key)} style={{background:"none",border:"none",color:"#1e3a5f",cursor:"pointer",fontSize:".8rem",lineHeight:1,padding:0}}>✕</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Comparison table */}
+      {selected.length >= 2 && (
+        <div style={{overflowX:"auto",marginBottom:"1.8rem"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",background:"#fff",border:"1px solid #dde2ea",borderRadius:3}}>
+            <thead>
+              <tr>
+                <th style={{padding:".6rem .8rem",textAlign:"left",fontSize:".58rem",letterSpacing:".15em",textTransform:"uppercase",color:"#6b7280",borderBottom:"2px solid #dde2ea",width:"20%"}}>Característica</th>
+                {selected.map(key=>{
+                  const [brand,...rest]=key.split(" – ");
+                  return (
+                    <th key={key} style={{padding:".6rem .8rem",textAlign:"left",borderBottom:"2px solid #1e3a5f",width:colW}}>
+                      <div style={{fontSize:".55rem",letterSpacing:".14em",textTransform:"uppercase",color:"#1e3a5f",marginBottom:".15rem"}}>{brand}</div>
+                      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1rem",color:"#1c1714"}}>{rest.join(" – ")}</div>
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {ROW_LABELS.map((row,i)=>(
+                <tr key={row} style={{background:i%2===0?"#faf8f5":"#fff"}}>
+                  <td style={{padding:".55rem .8rem",fontSize:".62rem",letterSpacing:".1em",textTransform:"uppercase",color:"#6b7280",borderBottom:"1px solid #dde2ea",fontWeight:400}}>{row}</td>
+                  {selected.map(key=>{
+                    const val = getCellVal(key, row);
+                    const link = row==="Fragrantica" ? getLink(key) : null;
+                    return (
+                      <td key={key} style={{padding:".55rem .8rem",fontSize:".82rem",color:"#1c1714",borderBottom:"1px solid #dde2ea",fontFamily:["Marca","Notas"].includes(row)?"'Cormorant Garamond',serif":"inherit"}}>
+                        {link ? <a href={link} target="_blank" rel="noopener" style={{color:"#1e3a5f",textDecoration:"none",fontSize:".7rem",letterSpacing:".1em"}}>Abrir →</a> : val}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {selected.length < 2 && selected.length > 0 && (
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",color:"#6b7280",marginBottom:"1.2rem"}}>
+          Selecciona al menos una fragancia más para comparar.
+        </div>
+      )}
+
+      {/* Search & pick */}
+      <div className="sec-label" style={{marginTop:0}}>
+        {selected.length < 3 ? `Añadir fragancia ${selected.length > 0 ? `(${3-selected.length} restante${3-selected.length!==1?"s":""})` : ""}` : "Máximo 3 seleccionadas"}
+      </div>
+      {selected.length < 3 && (
+        <>
+          <div className="search-wrap">
+            <span className="search-icon">◈</span>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Busca una fragancia..."/>
+          </div>
+          <div className="perf-grid">
+            {filtered.filter(p=>!selected.includes(fragKey(p))).map(p=>{
+              const key=fragKey(p);
+              const cnt=usageCount(key);
+              return (
+                <div key={key} className="perf-item" onClick={()=>toggle(key)}>
+                  <div className="perf-brand">{p.brand}</div>
+                  <div className="perf-name">{p.name}</div>
+                  {cnt>0&&<div style={{fontSize:".58rem",color:"#6b7280",marginTop:".2rem"}}>{cnt} usos</div>}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App));
+</script>
+</body>
+</html>
